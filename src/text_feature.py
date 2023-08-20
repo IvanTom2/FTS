@@ -1,9 +1,11 @@
 import pandas as pd
 from abc import ABC, abstractmethod
 import warnings
+import numpy as np
+
 
 from notation import *
-from features_collection import *
+from features_collection import AbstractFeature, Sign, Rx, ALL_FUTURES
 
 warnings.filterwarnings("ignore")
 
@@ -18,22 +20,13 @@ class AbstractTextFeatureSearch(ABC):
 
 
 class TextFeatureSearch(AbstractTextFeatureSearch):
-    ALL_FEATURES = [Weight, Volume, MemoryCapacity]  #
-
     def __init__(
         self,
         skip_validated: bool = True,
         skip_intermediate_validated: bool = True,
-        decisive_features: str = CLIENT_DESICIVE_FEATURES,
     ) -> None:
         self.skip_validated = skip_validated
         self.skip_intermediate_validated = skip_intermediate_validated
-
-        assert decisive_features in [
-            CLIENT_DESICIVE_FEATURES,
-            SOURCE_DESICIVE_FEATURES,
-        ], f"Desicive features should be {CLIENT_DESICIVE_FEATURES}, {SOURCE_DESICIVE_FEATURES}"
-        self.decisive_features = decisive_features
 
     def _preproccess(
         self,
@@ -54,14 +47,14 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         return series
 
     def _intermediate_validation(self, row: pd.Series) -> pd.Series:
-        cif = set(row[CIF])  # client intermediate features
-        sif = set(row[SIF])  # source intermediate features
+        cif = set(row[FEATURES.CI])  # client intermediate features
+        sif = set(row[FEATURES.SI])  # source intermediate features
         intersect = cif.intersection(sif)
 
         min_intersect_len = min(len(cif), len(sif))
         desicion = 1 if len(intersect) == min_intersect_len else 0
 
-        row[INTERMEDIATE_VALIDATION] = desicion
+        row[FEATURES.INTERMEDIATE_VALIDATION] = desicion
         return row
 
     def _hand_over_features(
@@ -69,8 +62,8 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         data: pd.DataFrame,
         new_data: pd.DataFrame,
     ) -> pd.DataFrame:
-        data.loc[new_data.index, CLIENT_FEATURES] += new_data[CIF]
-        data.loc[new_data.index, SOURCE_FEATURES] += new_data[SIF]
+        data.loc[new_data.index, FEATURES.CLIENT] += new_data[FEATURES.CI]
+        data.loc[new_data.index, FEATURES.SOURCE] += new_data[FEATURES.SI]
         return data
 
     def _hand_over_intermediate(
@@ -78,10 +71,16 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         data: pd.DataFrame,
         new_data: pd.DataFrame,
     ) -> pd.DataFrame:
-        data.loc[new_data.index, [TF_STATUS, INTERMEDIATE_VALIDATION]] = new_data[
+        data.loc[
+            new_data.index,
             [
-                TF_STATUS,
-                INTERMEDIATE_VALIDATION,
+                FEATURES.STATUS,
+                FEATURES.INTERMEDIATE_VALIDATION,
+            ],
+        ] = new_data[
+            [
+                FEATURES.STATUS,
+                FEATURES.INTERMEDIATE_VALIDATION,
             ]
         ]
         return data
@@ -89,26 +88,35 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
     def _extract(self, data: pd.DataFrame) -> pd.DataFrame:
         cur_df = data[:]  # current working dataframe
 
-        for feature in self.ALL_FEATURES:
-            cur_df[CIF] = [[] for _ in range(len(cur_df))]
-            cur_df[SIF] = [[] for _ in range(len(cur_df))]
+        for feature in ALL_FUTURES:
+            cur_df[FEATURES.CI] = [[] for _ in range(len(cur_df))]
+            cur_df[FEATURES.SI] = [[] for _ in range(len(cur_df))]
 
-            for RX in feature.RXS:
-                cli = self._feature_search(cur_df[VALIDATION_CLIENT_NAME], feature, RX)
-                src = self._feature_search(cur_df[VALIDATION_ROW], feature, RX)
+            for regex in feature.RXS:
+                cif = self._feature_search(
+                    cur_df[VALIDATION.CLIENT_NAME],
+                    feature,
+                    regex,
+                )
+                sif = self._feature_search(
+                    cur_df[VALIDATION.VALIDATION_ROW],
+                    feature,
+                    regex,
+                )
 
-                cur_df[CIF] += cli
-                cur_df[SIF] += src
+                cur_df[FEATURES.CI] += sif
+                cur_df[FEATURES.SI] += cif
 
             cur_df = cur_df.apply(self._intermediate_validation, axis=1)
             cur_df.loc[
-                cur_df[INTERMEDIATE_VALIDATION] == 0, TF_STATUS
+                cur_df[FEATURES.INTERMEDIATE_VALIDATION] == 0,
+                FEATURES.STATUS,
             ] = f"Not validated by {feature.NAME}"
 
             data = self._hand_over_features(data, cur_df)
             if self.skip_intermediate_validated:
                 data = self._hand_over_intermediate(data, cur_df)
-                cur_df = cur_df[cur_df[INTERMEDIATE_VALIDATION] != 0]
+                cur_df = cur_df[cur_df[FEATURES.INTERMEDIATE_VALIDATION] != 0]
 
         return data
 
@@ -116,15 +124,30 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         if self.skip_validated:
             data = data[data[VALIDATED] == 0]
 
-        data[TF_STATUS] = ""
-        data[INTERMEDIATE_VALIDATION] = 1
+        data[FEATURES.STATUS] = ""
+        data[FEATURES.INTERMEDIATE_VALIDATION] = 1
 
-        data.loc[:, CLIENT_FEATURES] = [[] for _ in range(len(data))]
-        data.loc[:, SOURCE_FEATURES] = [[] for _ in range(len(data))]
+        data.loc[:, FEATURES.CLIENT] = [[] for _ in range(len(data))]
+        data.loc[:, FEATURES.SOURCE] = [[] for _ in range(len(data))]
 
         data = self._extract(data)
 
-        data.loc[data[INTERMEDIATE_VALIDATION] == 1, VALIDATED] = 1
-        data.loc[data[INTERMEDIATE_VALIDATION] == 1, TF_STATUS] = "Validated"
+        data.loc[data[FEATURES.INTERMEDIATE_VALIDATION] == 1, VALIDATED] = 1
+        data.loc[
+            data[FEATURES.INTERMEDIATE_VALIDATION] == 1,
+            FEATURES.STATUS,
+        ] = "Validated"
 
-        return data, [VALIDATED, TF_STATUS, CLIENT_FEATURES, SOURCE_FEATURES]
+        data[FEATURES.VALIDATED] = np.where(
+            data[FEATURES.STATUS] == "Validated",
+            1,
+            0,
+        )
+
+        return data, [
+            VALIDATED,
+            FEATURES.STATUS,
+            FEATURES.VALIDATED,
+            FEATURES.CLIENT,
+            FEATURES.SOURCE,
+        ]

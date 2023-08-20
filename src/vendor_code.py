@@ -4,14 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 import re
 
-from notation import *
-
-ORIGINAL_VC = "Original VC"
-EXTRACTED_VC = "Extracted VC"
-
-
-class VendorCodeTypeError(Exception):
-    pass
+from notation import SEMANTIC, VALIDATION, VENDOR_CODE, VALIDATED
 
 
 class VendorCode(object):
@@ -21,13 +14,16 @@ class VendorCode(object):
     def __init__(
         self,
         value: str,
-        type_: str,
+        type_: VENDOR_CODE.TYPE,
     ) -> None:
+        if type_ not in [
+            VENDOR_CODE.TYPE.ORIGINAL,
+            VENDOR_CODE.TYPE.EXTRACTED,
+        ]:
+            raise VENDOR_CODE.TYPE_ERROR
+
         self.value = value
         self.rx = self._get_rx()
-
-        if type_ not in [ORIGINAL_VC, EXTRACTED_VC]:
-            raise VendorCodeTypeError
         self.type = type_
 
     def _get_rx(self) -> str:
@@ -45,14 +41,22 @@ class VendorCode(object):
     def __str__(self) -> str:
         return str(self.value)
 
+    @classmethod
+    @property
+    def regex(self):
+        RX = r"(?:[a-z0-9]+[-.\\\/])+[a-z0-9]*"
+        return RX
+
 
 class VendorCodeExtractor(object):
-    VCRX = r"(?:[a-z0-9]+[-.\\\/])+[a-z0-9]*"
-
     def __init__(self) -> None:
         pass
 
-    def _transform_to_VC(self, series: pd.Series, type: str) -> pd.Series:
+    def _transform_to_VC(
+        self,
+        series: pd.Series,
+        type: VENDOR_CODE.TYPE,
+    ) -> pd.Series:
         def transform(cell: Union[str, list]) -> list:
             if isinstance(cell, str):
                 return [VendorCode(cell, type)]
@@ -61,15 +65,21 @@ class VendorCodeExtractor(object):
 
         return series.apply(transform)
 
-    def _extract_vendor_code(self, series: pd.Series) -> pd.Series:
-        series = series.str.findall(self.VCRX)
-        return self._transform_to_VC(series, EXTRACTED_VC)
+    def _extract_vendor_code(
+        self,
+        series: pd.Series,
+    ) -> pd.Series:
+        series = series.str.findall(VendorCode.regex)
+        return self._transform_to_VC(series, VENDOR_CODE.TYPE.EXTRACTED)
 
     def extract(self, semantic: pd.DataFrame) -> pd.DataFrame:
-        semantic[VENDOR_CODE] = np.where(
-            semantic[VENDOR_CODE].isna(),
-            self._extract_vendor_code(semantic[SEMANTIC_CLIENT_NAME]),
-            self._transform_to_VC(semantic[VENDOR_CODE], ORIGINAL_VC),
+        semantic[VENDOR_CODE.COLUMN] = np.where(
+            semantic[VENDOR_CODE.COLUMN].isna(),
+            self._extract_vendor_code(semantic[SEMANTIC.CLIENT_NAME]),
+            self._transform_to_VC(
+                semantic[VENDOR_CODE.COLUMN],
+                VENDOR_CODE.TYPE.ORIGINAL,
+            ),
         )
         return semantic
 
@@ -79,7 +89,10 @@ class AbstractVendorCodeSearch(ABC):
         pass
 
     @abstractmethod
-    def validate(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    def validate(
+        self,
+        data: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, list[str]]:
         pass
 
 
@@ -91,25 +104,28 @@ class VendorCodeSearch(AbstractVendorCodeSearch):
         self.skip_validated = skip_validated
 
     def _validate(self, row: pd.Series) -> pd.Series:
-        if row[VENDOR_CODE]:
-            for vendor_code in row[VENDOR_CODE]:
+        if row[VENDOR_CODE.COLUMN]:
+            for vendor_code in row[VENDOR_CODE.COLUMN]:
                 vendor_code: VendorCode
                 if re.search(
                     vendor_code.rx,
-                    row[VALIDATION_ROW],
+                    row[VALIDATION.VALIDATION_ROW],
                     flags=re.IGNORECASE,
                 ):
                     row[VALIDATED] = 1
-                    row[VC_STATUS] = f"Validated by {vendor_code.type}"
+                    row[VENDOR_CODE.VALIDATED] = 1
+                    row[VENDOR_CODE.STATUS] = f"Validated by {vendor_code.type}"
                     return row
                 continue
 
             row[VALIDATED] = 0
-            row[VC_STATUS] = "Not validated"
+            row[VENDOR_CODE.VALIDATED] = 0
+            row[VENDOR_CODE.STATUS] = "Not validated"
             return row
 
         row[VALIDATED] = 0
-        row[VC_STATUS] = "No vendor code"
+        row[VENDOR_CODE.VALIDATED] = 0
+        row[VENDOR_CODE.STATUS] = "No vendor code"
         return row
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -117,4 +133,4 @@ class VendorCodeSearch(AbstractVendorCodeSearch):
             data = data[data[VALIDATED] == 0]
 
         data = data.apply(self._validate, axis=1)
-        return data, [VALIDATED, VC_STATUS]
+        return data, [VALIDATED, VENDOR_CODE.VALIDATED, VENDOR_CODE.STATUS]

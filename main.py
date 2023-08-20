@@ -1,27 +1,31 @@
 import pandas as pd
 import os
 import sys
+from pathlib import Path
 
-sys.path.append(os.path.dirname(__file__) + "/src")
-sys.path.append(os.path.dirname(__file__) + "\src")
+sys.path.append(str(Path(__file__).parent / "src"))
 
-from src.util import Mode
+from src.util import DataRepr, DataReprMode
 from src.vendor_code import VendorCodeSearch, VendorCodeExtractor
-from src.text_feature import AbstractTextFeatureSearch, TextFeatureSearch
+from src.text_feature import TextFeatureSearch
 from notation import *
 from collections.abc import Callable
+from jakkar.jakkar import *
 
 
 class Validator(object):
     def __init__(
         self,
+        data_repr: DataRepr,
         VC: VendorCodeSearch,
-        TF: AbstractTextFeatureSearch,
+        TF: TextFeatureSearch,
         VCExtractor: VendorCodeExtractor,
+        jakkar: FuzzyJakkarValidator,
     ) -> None:
         self.VC = VC
         self.TF = TF
         self.VCExtractor = VCExtractor
+        self.jakkar = jakkar
 
     def _upload_data(self, path: str) -> pd.DataFrame:
         return pd.read_excel(path)
@@ -30,18 +34,20 @@ class Validator(object):
         self,
         semantic_path: str,
         validation_path: str,
-        mode: Mode,
+        data_repr: DataRepr,
     ):
         semantic = self._upload_data(semantic_path)
         semantic = self.VCExtractor.extract(semantic)
 
         validation = self._upload_data(validation_path)
-        data = mode.proccess(semantic, validation)
+        data = data_repr.proccess(semantic, validation)
 
         data[VALIDATED] = 0
+        data[VENDOR_CODE.VALIDATED] = 0
+        data[FEATURES.VALIDATED] = 0
         return data
 
-    def _proccess_validation(
+    def _process_validation(
         self,
         function: Callable,
         data: pd.DataFrame,
@@ -56,12 +62,12 @@ class Validator(object):
         self,
         semantic_path: str,
         validation_path: str,
-        mode: Mode,
     ) -> pd.DataFrame:
-        data = self._get_data(semantic_path, validation_path, mode)
+        data = self._get_data(semantic_path, validation_path, data_repr)
 
-        data = self._proccess_validation(self.VC.validate, data)
-        data = self._proccess_validation(self.TF.validate, data)
+        data = self._process_validation(self.VC.validate, data)
+        data = self._process_validation(self.TF.validate, data)
+        data = self._process_validation(self.jakkar.validate, data)
 
         print(data)
 
@@ -76,14 +82,30 @@ if __name__ == "__main__":
     6. Запуск Джаккара
     """
 
-    mode = Mode("default")
+    data_repr = DataRepr(DataReprMode.DEFAULT)
     VC = VendorCodeSearch(True)
     TF = TextFeatureSearch(True)
     VCExtractor = VendorCodeExtractor()
 
-    validator = Validator(VC=VC, TF=TF, VCExtractor=VCExtractor)
+    jakkar = FuzzyJakkarValidator(
+        tokenizer=BasicTokenizer(),
+        preprocessor=Preprocessor(0),
+        fuzzy=FuzzySearch(65, transformer=TokenTransformer()),
+        rate_counter=RateCounter(0, 1, 1, 0, RateFunction.sqrt2),
+        marks_counter=MarksCounter(MarksMode.UNION),
+        validation_treshold=50,
+        debug=True,
+    )
+
+    validator = Validator(
+        data_repr=data_repr,
+        VC=VC,
+        TF=TF,
+        VCExtractor=VCExtractor,
+        jakkar=jakkar,
+    )
+
     validator.validate(
         semantic_path="semantic.xlsx",
         validation_path="validation.xlsx",
-        mode=mode,
     )

@@ -2,18 +2,13 @@ import pandas as pd
 from pathlib import Path
 import sys
 
+sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 from notation import *
 from tokenization import BasicTokenizer, TokenTransformer, Token
 from preprocessing import Preprocessor
 from fuzzy_search import FuzzySearch
-from ratio import RateCounter, MarksCounter, MarksMode
-
-
-CLIENT = "_client"
-SOURCE = "_source"
-CLIENT_TOKENS = "_client_tokens"
-SOURCE_TOKENS = "_source_tokens"
+from ratio import RateCounter, MarksCounter, MarksMode, RateFunction
 
 
 class FuzzyJakkarValidator(object):
@@ -25,15 +20,29 @@ class FuzzyJakkarValidator(object):
         rate_counter: RateCounter,
         marks_counter: MarksCounter,
         debug: bool = False,
+        validation_treshold: int = 50,
     ) -> None:
+        if validation_treshold < 0 or validation_treshold > 100:
+            raise ValueError("Validation treshold should be in range 0 - 100")
+
         self.tokenizer = tokenizer
         self.preproc = preprocessor
         self.fuzzy = fuzzy
         self.rate_counter = rate_counter
         self.marks_counter = marks_counter
         self.debug = debug
+        self.validation_treshold = validation_treshold
 
         self.symbols_to_del = r"'\"/"
+        self.returning_columns = []
+
+        if self.debug:
+            self.returning_columns.extend(
+                [
+                    JAKKAR.CLIENT_TOKENS,
+                    JAKKAR.SOURCE_TOKENS,
+                ]
+            )
 
     def _progress_ind(self, indicator: str) -> None:
         match indicator:
@@ -61,55 +70,75 @@ class FuzzyJakkarValidator(object):
         series = series.str.replace(symbols_to_del, "", regex=True)
         return series
 
-    def _create_working_rows(self, validation: pd.DataFrame) -> pd.DataFrame:
-        validation[CLIENT] = self._delete_symbols(validation[VALIDATION_CLIENT_NAME])
-        validation[SOURCE] = self._delete_symbols(validation[VALIDATION_ROW])
-        return validation
+    def _create_working_rows(self, data: pd.DataFrame) -> pd.DataFrame:
+        data[JAKKAR.CLIENT] = self._delete_symbols(data[VALIDATION.CLIENT_NAME])
+        data[JAKKAR.SOURCE] = self._delete_symbols(data[VALIDATION.VALIDATION_ROW])
+        return data
 
-    def _delete_working_rows(self, validation: pd.DataFrame) -> pd.DataFrame:
+    def _delete_working_rows(self, data: pd.DataFrame) -> pd.DataFrame:
         self._progress_ind("end")
-        validation.drop([CLIENT, SOURCE], axis=1, inplace=True)
+        data.drop(
+            [JAKKAR.CLIENT, JAKKAR.SOURCE],
+            axis=1,
+            inplace=True,
+        )
+
         if not self.debug:
-            validation.drop([CLIENT_TOKENS, SOURCE_TOKENS], axis=1, inplace=True)
-        return validation
+            data.drop(
+                [JAKKAR.CLIENT_TOKENS, JAKKAR.SOURCE_TOKENS],
+                axis=1,
+                inplace=True,
+            )
+        return data
 
     def _save_ratio(self) -> None:
-        file = pd.Series(data=self.ratio)
-        file.to_excel("ratio.xlsx")
+        pd.Series(data=self.ratio).to_excel(JAKKAR.RATIO_PATH)
 
     def _process_tokenization(self, data: pd.DataFrame) -> pd.DataFrame:
         self._progress_ind("client_tokens")
-        data = self.tokenizer.tokenize(data, CLIENT, CLIENT_TOKENS)
+        data = self.tokenizer.tokenize(data, JAKKAR.CLIENT, JAKKAR.CLIENT_TOKENS)
 
         self._progress_ind("source_tokens")
-        data = self.tokenizer.tokenize(data, SOURCE, SOURCE_TOKENS)
+        data = self.tokenizer.tokenize(data, JAKKAR.SOURCE, JAKKAR.SOURCE_TOKENS)
 
         return data
 
     def _make_tokens_set(self, data: pd.DataFrame) -> pd.DataFrame:
-        data[CLIENT_TOKENS] = data[CLIENT_TOKENS].apply(set)
-        data[SOURCE_TOKENS] = data[SOURCE_TOKENS].apply(set)
+        data[JAKKAR.CLIENT_TOKENS] = data[JAKKAR.CLIENT_TOKENS].apply(set)
+        data[JAKKAR.SOURCE_TOKENS] = data[JAKKAR.SOURCE_TOKENS].apply(set)
         return data
 
     def _process_preprocessing(self, validation: pd.DataFrame) -> pd.DataFrame:
-        validation[CLIENT_TOKENS] = self.preproc.preprocess(validation[CLIENT_TOKENS])
-        validation[SOURCE_TOKENS] = self.preproc.preprocess(validation[SOURCE_TOKENS])
+        validation[JAKKAR.CLIENT_TOKENS] = self.preproc.preprocess(
+            validation[JAKKAR.CLIENT_TOKENS]
+        )
+        validation[JAKKAR.SOURCE_TOKENS] = self.preproc.preprocess(
+            validation[JAKKAR.SOURCE_TOKENS]
+        )
         return validation
 
     def _process_fuzzy(self, data: pd.DataFrame) -> pd.DataFrame:
-        data = self.fuzzy.search(data, CLIENT_TOKENS, SOURCE_TOKENS)
+        data = self.fuzzy.search(data, JAKKAR.CLIENT_TOKENS, JAKKAR.SOURCE_TOKENS)
         return data
 
     def _process_ratio(self, data: pd.DataFrame) -> pd.DataFrame:
-        ratio = self.rate_counter.count_ratio(data, CLIENT_TOKENS, SOURCE_TOKENS)
+        ratio = self.rate_counter.count_ratio(
+            data,
+            JAKKAR.CLIENT_TOKENS,
+            JAKKAR.SOURCE_TOKENS,
+        )
         return ratio
 
-    def _process_marks_count(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _process_marks_count(
+        self,
+        data: pd.DataFrame,
+    ) -> pd.DataFrame:
         return self.marks_counter.count_marks(
             self.ratio,
             data,
-            CLIENT_TOKENS,
-            SOURCE_TOKENS,
+            JAKKAR.CLIENT_TOKENS,
+            JAKKAR.SOURCE_TOKENS,
+            self.returning_columns,
         )
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -128,7 +157,7 @@ class FuzzyJakkarValidator(object):
             self._save_ratio()
 
         data = self._delete_working_rows(data)
-        return data
+        return data, self.returning_columns
 
 
 if __name__ == "__main__":
@@ -139,7 +168,7 @@ if __name__ == "__main__":
     transformer = TokenTransformer()
     rate_counter = RateCounter()
     fuzzy = FuzzySearch(65, transformer=transformer)
-    marks_counter = MarksCounter(MarksMode.UNION)
+    marks_counter = MarksCounter(MarksMode.MULTIPLE)
 
     validator = FuzzyJakkarValidator(
         tokenizer=tokenizer,

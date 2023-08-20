@@ -156,7 +156,7 @@ class MarksCounter(AbstractMarksCounter):
 
         except Exception as ex:
             print(ex)
-            return 0
+            mark = 0
 
         finally:
             return mark
@@ -194,7 +194,6 @@ class MarksCounter(AbstractMarksCounter):
     ) -> list[float]:
         left_tokens: set[Token] = row[left_tokens_column]
         right_tokens: set[Token] = row[right_tokens_column]
-
         intersect = left_tokens.intersection(right_tokens)
 
         bases = [
@@ -216,6 +215,7 @@ class MarksCounter(AbstractMarksCounter):
         data: pd.DataFrame,
         left_tokens_column: str,
         right_tokens_column: str,
+        returning_columns: list[str],
     ) -> pd.Series:
         self.ratio = ratio
 
@@ -230,12 +230,22 @@ class MarksCounter(AbstractMarksCounter):
             data[MarksMode.CLIENT] = marks.str[1]
             data[MarksMode.SOURCE] = marks.str[2]
 
+            returning_columns.extend(
+                [
+                    MarksMode.UNION,
+                    MarksMode.CLIENT,
+                    MarksMode.SOURCE,
+                ]
+            )
+
         else:
             data[self.mode] = data.apply(
                 self._count_mark,
                 axis=1,
                 args=(left_tokens_column, right_tokens_column),
             )
+
+            returning_columns.append(self.mode)
 
         return data
 

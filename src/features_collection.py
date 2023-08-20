@@ -95,6 +95,9 @@ class MemoryCapacity(NumericalFeature):
     NAME = "Memory Capacity"
 
 
+ALL_FUTURES: list[NumericalFeature] = [Weight, Volume, MemoryCapacity]
+
+
 if __name__ == "__main__":
     txt1 = "100 г"
     txt2 = "0.1 кг"

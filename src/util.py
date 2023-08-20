@@ -3,12 +3,27 @@ import pandas as pd
 from notation import *
 
 
-class Mode(object):
-    def __init__(self, mode: str) -> None:
+class DataReprMode(object):
+    DEFAULT = "default"
+    DECART = "decart"
+
+
+class DataRepr(object):
+    """
+    Данные могут быть представлены в двух видах:
+    1. Обычный вид валидационного файла
+    2. Декартово множество на основе названий клиента и названий источников
+    """
+
+    def __init__(self, mode: DataReprMode) -> None:
         self.mode = self._checkout_mode(mode)
 
     def _checkout_mode(self, mode: str) -> str:
-        assert mode in ["default", "decart"], "Mode should be default or decart"
+        if mode not in [
+            DataReprMode.DEFAULT,
+            DataReprMode.DECART,
+        ]:
+            raise NotImplementedError()
         return mode
 
     def _default_mode(
@@ -17,26 +32,36 @@ class Mode(object):
         validation: pd.DataFrame,
     ) -> pd.DataFrame:
         data = validation.merge(
-            semantic[[SEMANTIC_NAME, VENDOR_CODE]],
+            semantic[[SEMANTIC.NAME, VENDOR_CODE.COLUMN]],
             how="left",
-            left_on=VALIDATION_NAME,
-            right_on=SEMANTIC_NAME,
+            left_on=VALIDATION.NAME,
+            right_on=SEMANTIC.NAME,
         )
 
-        return data.drop(SEMANTIC_NAME, axis=1)
+        return data.drop(SEMANTIC.NAME, axis=1)
 
     def _decart_mode(
         self,
         semantic: pd.DataFrame,
         validation: pd.DataFrame,
     ) -> pd.DataFrame:
-        _semantic = semantic.drop_duplicates(subset=[SEMANTIC_NAME])
+        _semantic = semantic.drop_duplicates(subset=[SEMANTIC.NAME])
         _validation = validation.drop_duplicates(
-            subset=[VALIDATION_SOURCE, VALIDATION_ROW]
-        )[[VALIDATION_SOURCE, VALIDATION_LINK, VALIDATION_ROW, VALIDATION_SOURCE_NAME]]
+            subset=[
+                VALIDATION.SOURCE,
+                VALIDATION.VALIDATION_ROW,
+            ]
+        )[
+            [
+                VALIDATION.SOURCE,
+                VALIDATION.LINK,
+                VALIDATION.VALIDATION_ROW,
+                VALIDATION.SOURCE_NAME,
+            ]
+        ]
 
         data = _validation.merge(_semantic, how="cross")
-        # TODO: нужно проверить декартово множество на релевантность
+        # TODO: нужно проверить декартово множество на рациональность
         return data
 
     def proccess(
@@ -45,7 +70,7 @@ class Mode(object):
         validation: pd.DataFrame,
     ) -> pd.DataFrame:
         match self.mode:
-            case "default":
+            case DataReprMode.DEFAULT:
                 return self._default_mode(semantic, validation)
-            case "decart":
+            case DataReprMode.DECART:
                 return self._decart_mode(semantic, validation)
