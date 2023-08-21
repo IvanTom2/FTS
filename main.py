@@ -17,15 +17,16 @@ class Validator(object):
     def __init__(
         self,
         data_repr: DataRepr,
+        VCExtractor: VendorCodeExtractor,
         VC: VendorCodeSearch,
         TF: TextFeatureSearch,
-        VCExtractor: VendorCodeExtractor,
         jakkar: FuzzyJakkarValidator,
     ) -> None:
         self.VC = VC
-        self.TF = TF
         self.VCExtractor = VCExtractor
+        self.TF = TF
         self.jakkar = jakkar
+        self.data_repr = data_repr
 
     def _upload_data(self, path: str) -> pd.DataFrame:
         return pd.read_excel(path)
@@ -63,13 +64,22 @@ class Validator(object):
         semantic_path: str,
         validation_path: str,
     ) -> pd.DataFrame:
-        data = self._get_data(semantic_path, validation_path, data_repr)
+        data = self._get_data(
+            semantic_path,
+            validation_path,
+            self.data_repr,
+        )
 
-        data = self._process_validation(self.VC.validate, data)
-        data = self._process_validation(self.TF.validate, data)
-        data = self._process_validation(self.jakkar.validate, data)
+        if self.VC is not None:
+            data = self._process_validation(self.VC.validate, data)
 
-        print(data)
+        if self.TF is not None:
+            data = self._process_validation(self.TF.validate, data)
+
+        if self.jakkar is not None:
+            data = self._process_validation(self.jakkar.validate, data)
+
+        return data
 
 
 if __name__ == "__main__":

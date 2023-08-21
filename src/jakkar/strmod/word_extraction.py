@@ -1,8 +1,6 @@
 import pandas as pd
-import sys
-import os
 
-from autosem.autosem_funcs.word_extraction_funcs import (
+from word_extraction_funcs import (
     LanguageRules,
     extractWords,
     deleteWords,

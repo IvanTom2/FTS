@@ -4,11 +4,19 @@ import sys
 
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent / "jakkar" / "strmod"))
+
 from notation import *
-from tokenization import BasicTokenizer, TokenTransformer, Token
 from preprocessing import Preprocessor
 from fuzzy_search import FuzzySearch
 from ratio import RateCounter, MarksCounter, MarksMode, RateFunction
+from tokenization import (
+    BasicTokenizer,
+    TokenTransformer,
+    RegexTokenizer,
+    RegexCustomWeights,
+    LanguageType,
+)
 
 
 class FuzzyJakkarValidator(object):
@@ -145,30 +153,48 @@ class FuzzyJakkarValidator(object):
         data = self._create_working_rows(data)
 
         data = self._process_tokenization(data)
-        data = self._process_preprocessing(data)
 
-        data = self._process_fuzzy(data)
-        self.ratio = self._process_ratio(data)
+        print(data)
+        # data = self._process_preprocessing(data)
 
-        data = self._make_tokens_set(data)
-        data = self._process_marks_count(data)
+        # # очистка токенов-символов по типу (, ), \, . и т.д.
+        # # актуально для word_tokenizer
+        # data = self._process_fuzzy(data)
+        # self.ratio = self._process_ratio(data)
 
-        if self.debug:
-            self._save_ratio()
+        # data = self._make_tokens_set(data)
+        # data = self._process_marks_count(data)
 
-        data = self._delete_working_rows(data)
-        return data, self.returning_columns
+        # if self.debug:
+        #     self._save_ratio()
+
+        # data = self._delete_working_rows(data)
+
+        # # print(data)
+        # # data.to_excel("checkout.xlsx")
+
+        # return data, self.returning_columns
 
 
 if __name__ == "__main__":
-    data = pd.read_excel(r"/home/mainus/BrandPol/src/jakkar/test.xlsx")
+    # path = "/home/mainus/Data Sets/Апетки/TESTDATA_farmaimpex.xlsx"
+    path = "/home/mainus/Data Sets/Продукты/TESTDATA_vkusvill.xlsx"
 
-    tokenizer = BasicTokenizer()
-    preprocessor = Preprocessor()
+    data = pd.read_excel(path)
+
+    # tokenizer = BasicTokenizer()
+
+    regex_weights = RegexCustomWeights(1, 1, 1, 1)
+    tokenizer = RegexTokenizer(
+        {LanguageType.RUS: 1, LanguageType.ENG: 1},
+        weights_rules=regex_weights,
+    )
+
+    preprocessor = Preprocessor(2)
     transformer = TokenTransformer()
     rate_counter = RateCounter()
     fuzzy = FuzzySearch(65, transformer=transformer)
-    marks_counter = MarksCounter(MarksMode.MULTIPLE)
+    marks_counter = MarksCounter(MarksMode.UNION)
 
     validator = FuzzyJakkarValidator(
         tokenizer=tokenizer,
