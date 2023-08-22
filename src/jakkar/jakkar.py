@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent.parent / "jakkar" / "strmod"))
 
-from notation import *
+from notation import JAKKAR, DATA
 from preprocessing import Preprocessor
 from fuzzy_search import FuzzySearch
 from ratio import RateCounter, MarksCounter, MarksMode, RateFunction
@@ -79,8 +79,8 @@ class FuzzyJakkarValidator(object):
         return series
 
     def _create_working_rows(self, data: pd.DataFrame) -> pd.DataFrame:
-        data[JAKKAR.CLIENT] = self._delete_symbols(data[VALIDATION.CLIENT_NAME])
-        data[JAKKAR.SOURCE] = self._delete_symbols(data[VALIDATION.VALIDATION_ROW])
+        data[JAKKAR.CLIENT] = self._delete_symbols(data[DATA.CLIENT_NAME])
+        data[JAKKAR.SOURCE] = self._delete_symbols(data[DATA.ROW])
         return data
 
     def _delete_working_rows(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -153,27 +153,25 @@ class FuzzyJakkarValidator(object):
         data = self._create_working_rows(data)
 
         data = self._process_tokenization(data)
+        data = self._process_preprocessing(data)
 
-        print(data)
-        # data = self._process_preprocessing(data)
+        # очистка токенов-символов по типу (, ), \, . и т.д.
+        # актуально для word_tokenizer
+        data = self._process_fuzzy(data)
+        self.ratio = self._process_ratio(data)
 
-        # # очистка токенов-символов по типу (, ), \, . и т.д.
-        # # актуально для word_tokenizer
-        # data = self._process_fuzzy(data)
-        # self.ratio = self._process_ratio(data)
+        data = self._make_tokens_set(data)
+        data = self._process_marks_count(data)
 
-        # data = self._make_tokens_set(data)
-        # data = self._process_marks_count(data)
+        if self.debug:
+            self._save_ratio()
 
-        # if self.debug:
-        #     self._save_ratio()
+        data = self._delete_working_rows(data)
 
-        # data = self._delete_working_rows(data)
+        # print(data)
+        # data.to_excel("checkout.xlsx")
 
-        # # print(data)
-        # # data.to_excel("checkout.xlsx")
-
-        # return data, self.returning_columns
+        return data, self.returning_columns
 
 
 if __name__ == "__main__":

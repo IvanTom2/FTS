@@ -1,6 +1,6 @@
 import pandas as pd
 
-from notation import *
+from notation import RAW, SEMANTIC, DATA
 
 
 class DataReprMode(object):
@@ -26,51 +26,70 @@ class DataRepr(object):
             raise NotImplementedError()
         return mode
 
+    def _rename(self, data: pd.DataFrame):
+        return data.rename(DATA.rename)
+
+    def extract_domain(self, raw: pd.DataFrame) -> pd.DataFrame:
+        rx = "://(?:.*\.)?([a-zа-яё]+\.[a-zа-яё]+)"
+        raw[RAW.SOURCE] = raw[RAW.LINK].str.extract(rx)
+        return raw
+
     def _default_mode(
         self,
         semantic: pd.DataFrame,
-        validation: pd.DataFrame,
+        raw: pd.DataFrame,
     ) -> pd.DataFrame:
-        data = validation.merge(
-            semantic[[SEMANTIC.NAME, VENDOR_CODE.COLUMN]],
+        data = raw[DATA.raw_cols].merge(
+            semantic[DATA.sem_cols],
             how="left",
-            left_on=VALIDATION.NAME,
-            right_on=SEMANTIC.NAME,
+            left_on=RAW.QUERY,
+            right_on=SEMANTIC.QUERY,
         )
 
-        return data.drop(SEMANTIC.NAME, axis=1)
+        return self._change_columns(data)
 
     def _decart_mode(
         self,
         semantic: pd.DataFrame,
-        validation: pd.DataFrame,
+        raw: pd.DataFrame,
     ) -> pd.DataFrame:
-        _semantic = semantic.drop_duplicates(subset=[SEMANTIC.NAME])
-        _validation = validation.drop_duplicates(
+        _semantic = semantic.drop_duplicates(
             subset=[
-                VALIDATION.SOURCE,
-                VALIDATION.VALIDATION_ROW,
+                SEMANTIC.NAME,
+                SEMANTIC.QUERY,
+            ],
+        )[DATA.sem_cols]
+
+        _validation = raw.drop_duplicates(
+            subset=[
+                RAW.SOURCE,
+                RAW.ROW,
             ]
-        )[
-            [
-                VALIDATION.SOURCE,
-                VALIDATION.LINK,
-                VALIDATION.VALIDATION_ROW,
-                VALIDATION.SOURCE_NAME,
-            ]
-        ]
+        )[DATA.raw_cols]
 
         data = _validation.merge(_semantic, how="cross")
         # TODO: нужно проверить декартово множество на рациональность
+        return self._change_columns(data)
+
+    def _change_columns(self, data: pd.DataFrame) -> pd.DataFrame:
+        data = data.drop(DATA.to_drop, axis=1)
+        data = data.rename(columns=DATA.rename)
+        data = data[DATA.columns_order]
         return data
 
     def proccess(
         self,
         semantic: pd.DataFrame,
-        validation: pd.DataFrame,
+        raw: pd.DataFrame,
     ) -> pd.DataFrame:
+        raw = self.extract_domain(raw)
+
         match self.mode:
             case DataReprMode.DEFAULT:
-                return self._default_mode(semantic, validation)
+                return self._default_mode(semantic, raw)
             case DataReprMode.DECART:
-                return self._decart_mode(semantic, validation)
+                return self._decart_mode(semantic, raw)
+
+
+class TestDataPreprocess(object):
+    pass

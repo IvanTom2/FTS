@@ -2,13 +2,14 @@ import pandas as pd
 import os
 import sys
 from pathlib import Path
+from typing import Union
 
 sys.path.append(str(Path(__file__).parent / "src"))
 
 from src.util import DataRepr, DataReprMode
 from src.vendor_code import VendorCodeSearch, VendorCodeExtractor
 from src.text_feature import TextFeatureSearch
-from notation import *
+from notation import DATA, VENDOR_CODE, FEATURES
 from collections.abc import Callable
 from jakkar.jakkar import *
 
@@ -18,15 +19,15 @@ class Validator(object):
         self,
         data_repr: DataRepr,
         VCExtractor: VendorCodeExtractor,
-        VC: VendorCodeSearch,
-        TF: TextFeatureSearch,
-        jakkar: FuzzyJakkarValidator,
+        VC: Union[VendorCodeSearch, None],
+        TF: Union[TextFeatureSearch, None],
+        jakkar: Union[FuzzyJakkarValidator, None],
     ) -> None:
-        self.VC = VC
+        self.data_repr = data_repr
         self.VCExtractor = VCExtractor
+        self.VC = VC
         self.TF = TF
         self.jakkar = jakkar
-        self.data_repr = data_repr
 
     def _upload_data(self, path: str) -> pd.DataFrame:
         return pd.read_excel(path)
@@ -34,16 +35,15 @@ class Validator(object):
     def _get_data(
         self,
         semantic_path: str,
-        validation_path: str,
-        data_repr: DataRepr,
+        raw_path: str,
     ):
         semantic = self._upload_data(semantic_path)
         semantic = self.VCExtractor.extract(semantic)
 
-        validation = self._upload_data(validation_path)
-        data = data_repr.proccess(semantic, validation)
+        raw = self._upload_data(raw_path)
+        data = self.data_repr.proccess(semantic, raw)
 
-        data[VALIDATED] = 0
+        data[DATA.VALIDATED] = 0
         data[VENDOR_CODE.VALIDATED] = 0
         data[FEATURES.VALIDATED] = 0
         return data
@@ -62,12 +62,11 @@ class Validator(object):
     def validate(
         self,
         semantic_path: str,
-        validation_path: str,
+        raw_path: str,
     ) -> pd.DataFrame:
         data = self._get_data(
             semantic_path,
-            validation_path,
-            self.data_repr,
+            raw_path,
         )
 
         if self.VC is not None:
@@ -93,9 +92,9 @@ if __name__ == "__main__":
     """
 
     data_repr = DataRepr(DataReprMode.DEFAULT)
+    VCExtractor = VendorCodeExtractor()
     VC = VendorCodeSearch(True)
     TF = TextFeatureSearch(True)
-    VCExtractor = VendorCodeExtractor()
 
     jakkar = FuzzyJakkarValidator(
         tokenizer=BasicTokenizer(),
@@ -109,13 +108,13 @@ if __name__ == "__main__":
 
     validator = Validator(
         data_repr=data_repr,
+        VCExtractor=VCExtractor,
         VC=VC,
         TF=TF,
-        VCExtractor=VCExtractor,
         jakkar=jakkar,
     )
 
     validator.validate(
-        semantic_path="semantic.xlsx",
-        validation_path="validation.xlsx",
+        semantic_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\TEST_data\Grocery\Semantic.xlsx",
+        raw_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\TEST_data\Grocery\test_data_Grocery_raw.xlsx",
     )

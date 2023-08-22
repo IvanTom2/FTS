@@ -1,0 +1,7 @@
+pandas
+fuzzywuzzy
+python-Levenstein
+numpy
+scikit-learn
+pytest
+nltk

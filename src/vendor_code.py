@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 import re
 
-from notation import SEMANTIC, VALIDATION, VENDOR_CODE, VALIDATED
+from notation import SEMANTIC, VENDOR_CODE, DATA
 
 
 class VendorCode(object):
@@ -73,11 +73,11 @@ class VendorCodeExtractor(object):
         return self._transform_to_VC(series, VENDOR_CODE.TYPE.EXTRACTED)
 
     def extract(self, semantic: pd.DataFrame) -> pd.DataFrame:
-        semantic[VENDOR_CODE.COLUMN] = np.where(
-            semantic[VENDOR_CODE.COLUMN].isna(),
+        semantic[SEMANTIC.VC] = np.where(
+            semantic[SEMANTIC.VC].isna(),
             self._extract_vendor_code(semantic[SEMANTIC.CLIENT_NAME]),
             self._transform_to_VC(
-                semantic[VENDOR_CODE.COLUMN],
+                semantic[SEMANTIC.VC],
                 VENDOR_CODE.TYPE.ORIGINAL,
             ),
         )
@@ -104,33 +104,33 @@ class VendorCodeSearch(AbstractVendorCodeSearch):
         self.skip_validated = skip_validated
 
     def _validate(self, row: pd.Series) -> pd.Series:
-        if row[VENDOR_CODE.COLUMN]:
-            for vendor_code in row[VENDOR_CODE.COLUMN]:
+        if row[DATA.VC]:
+            for vendor_code in row[DATA.VC]:
                 vendor_code: VendorCode
                 if re.search(
                     vendor_code.rx,
-                    row[VALIDATION.VALIDATION_ROW],
+                    row[DATA.ROW],
                     flags=re.IGNORECASE,
                 ):
-                    row[VALIDATED] = 1
+                    row[DATA.VALIDATED] = 1
                     row[VENDOR_CODE.VALIDATED] = 1
                     row[VENDOR_CODE.STATUS] = f"Validated by {vendor_code.type}"
                     return row
                 continue
 
-            row[VALIDATED] = 0
+            row[DATA.VALIDATED] = 0
             row[VENDOR_CODE.VALIDATED] = 0
             row[VENDOR_CODE.STATUS] = "Not validated"
             return row
 
-        row[VALIDATED] = 0
+        row[DATA.VALIDATED] = 0
         row[VENDOR_CODE.VALIDATED] = 0
         row[VENDOR_CODE.STATUS] = "No vendor code"
         return row
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.skip_validated:
-            data = data[data[VALIDATED] == 0]
+            data = data[data[DATA.VALIDATED] == 0]
 
         data = data.apply(self._validate, axis=1)
-        return data, [VALIDATED, VENDOR_CODE.VALIDATED, VENDOR_CODE.STATUS]
+        return data, [DATA.VALIDATED, VENDOR_CODE.VALIDATED, VENDOR_CODE.STATUS]

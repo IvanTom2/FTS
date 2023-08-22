@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 
-from notation import *
+from notation import DATA, FEATURES
 from features_collection import AbstractFeature, Sign, Rx, ALL_FUTURES
 
 warnings.filterwarnings("ignore")
@@ -40,10 +40,10 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         self,
         series: pd.Series,
         feature: AbstractFeature,
-        RX: Rx,
+        regex: Rx,
     ) -> pd.Series:
-        series = series.str.findall(RX.rx)
-        series = series.apply(self._preproccess, args=(feature, RX.sign))
+        series = series.str.findall(regex.rx)
+        series = series.apply(self._preproccess, args=(feature, regex.sign))
         return series
 
     def _intermediate_validation(self, row: pd.Series) -> pd.Series:
@@ -94,12 +94,12 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
             for regex in feature.RXS:
                 cif = self._feature_search(
-                    cur_df[VALIDATION.CLIENT_NAME],
+                    cur_df[DATA.CLIENT_NAME],
                     feature,
                     regex,
                 )
                 sif = self._feature_search(
-                    cur_df[VALIDATION.VALIDATION_ROW],
+                    cur_df[DATA.ROW],
                     feature,
                     regex,
                 )
@@ -122,7 +122,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.skip_validated:
-            data = data[data[VALIDATED] == 0]
+            data = data[data[DATA.VALIDATED] == 0]
 
         data[FEATURES.STATUS] = ""
         data[FEATURES.INTERMEDIATE_VALIDATION] = 1
@@ -132,7 +132,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
         data = self._extract(data)
 
-        data.loc[data[FEATURES.INTERMEDIATE_VALIDATION] == 1, VALIDATED] = 1
+        data.loc[data[FEATURES.INTERMEDIATE_VALIDATION] == 1, DATA.VALIDATED] = 1
         data.loc[
             data[FEATURES.INTERMEDIATE_VALIDATION] == 1,
             FEATURES.STATUS,
@@ -145,7 +145,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         )
 
         return data, [
-            VALIDATED,
+            DATA.VALIDATED,
             FEATURES.STATUS,
             FEATURES.VALIDATED,
             FEATURES.CLIENT,

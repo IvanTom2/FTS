@@ -6,32 +6,28 @@ class NOTATION(ABC):
 
 
 # columns from validation BrandPol
-class VALIDATION(NOTATION):
-    """Validation file notation"""
+class RAW(NOTATION):
+    """Raw data file notation"""
 
-    NAME = "Наименование"
-    SOURCE = "Сайт"
+    QUERY = "Запрос"
+    ROW = "Строка валидации"
     LINK = "Ссылка"
     REGION = "Регион"
-    LINK_FROM = "Источник ссылки"
-    DATE_FOUNDED = r"Дата первого\nобнаружения\nссылки"
-    DATE_VALIDATED = "Дата первой валидации ссылки"
-    VALIDATION_ROW = "Строка валидации"
-    SCORE = "БАЛЛ"
-    CLIENT_PRICE = "Цена клиента"
-    SOURCE_PRICE = "Цена на сайте"
-    PRICE_DEVIATION = "% отклонения"
-    CLIENT_IMG = "Ссылка на изображение товара клиента"
-    SOURCE_IMG = "Ссылка на изображение товара на сайте"
-    CLIENT_NAME = "Название товара клиента"
-    SOURCE_NAME = "Название товара на сайте"
+    MATCHED = "Сопоставление"
+    MATCH_METHOD = "Метод"
+    PRICE = "Цена"
+    BRAND = "Бренд"
+    NAME = "Наименование"
+    VC = "Артикул"
+
+    SOURCE = "Источник"
 
 
 class SEMANTIC(NOTATION):
     """Semantic file notations"""
 
     NAME = "Название"
-    SEARCH_QUERY = "Поисковый запрос"
+    QUERY = "Поисковый запрос"
     PLUS = "Плюс-слова"
     MINUS = "Минус-слова"
     REGEX = "Regex"
@@ -42,6 +38,55 @@ class SEMANTIC(NOTATION):
     CATEGORY2 = "Категория 2"
     CLIENT_NAME = "Название клиента"
     CLIENT_IMG = "Ссылка на фото"
+    VC = "Артикул"
+
+
+class DATA(NOTATION):
+    NAME = SEMANTIC.NAME
+    LINK = RAW.LINK
+    ROW = RAW.ROW
+    QUERY = SEMANTIC.QUERY
+    VC = SEMANTIC.VC
+    CLIENT_NAME = "Наименование товара клиента"
+    SOURCE_NAME = "Наименование товара на сайте"
+
+    VALIDATED = "validated"
+
+    @classmethod
+    @property
+    def rename(self):
+        return {
+            RAW.NAME: self.CLIENT_NAME,
+            SEMANTIC.CLIENT_NAME: self.SOURCE_NAME,
+        }
+
+    @classmethod
+    @property
+    def raw_cols(self):
+        return [RAW.NAME, RAW.LINK, RAW.ROW, RAW.QUERY]
+
+    @classmethod
+    @property
+    def sem_cols(self):
+        return [SEMANTIC.NAME, SEMANTIC.QUERY, SEMANTIC.CLIENT_NAME, SEMANTIC.VC]
+
+    @classmethod
+    @property
+    def to_drop(self):
+        return [RAW.QUERY]
+
+    @classmethod
+    @property
+    def columns_order(self):
+        return [
+            self.NAME,
+            self.QUERY,
+            self.LINK,
+            self.ROW,
+            self.CLIENT_NAME,
+            self.SOURCE_NAME,
+            self.VC,
+        ]
 
 
 class VENDOR_CODE(NOTATION):
@@ -107,6 +152,3 @@ class JAKKAR(NOTATION):
     CLIENT_TOKENS = "_client_tokens"
     SOURCE_TOKENS = "_source_tokens"
     RATIO_PATH = r"ratio.xlsx"
-
-
-VALIDATED = "validated"
