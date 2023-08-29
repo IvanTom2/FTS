@@ -111,18 +111,14 @@ if __name__ == "__main__":
         data_repr=data_repr,
         VCExtractor=VCExtractor,
         # VC=VC,
-        # TF=TF,
         VC=None,
-        TF=None,
+        TF=TF,
         jakkar=jakkar,
     )
 
-    semantic_path = str(Path(__file__).parent / "semantic.xlsx")
-    raw_path = str(Path(__file__).parent / "raw_data.xlsx")
-
     result = validator.validate(
-        semantic_path=semantic_path,
-        raw_path=raw_path,
+        semantic_path="test_semantic.xlsx",
+        raw_path="test_raw.xlsx",
     )
 
-    result.to_csv("output.csv", index=False)
+    result.to_excel("output.xlsx", index=False)

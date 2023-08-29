@@ -5,7 +5,7 @@ import numpy as np
 
 
 from notation import DATA, FEATURES
-from features_collection import AbstractFeature, Sign, Rx, ALL_FUTURES
+from features_collection import AbstractFeature, Sign, Rx, ALL_FUTURES, Measure
 
 warnings.filterwarnings("ignore")
 
@@ -24,26 +24,29 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         self,
         skip_validated: bool = True,
         skip_intermediate_validated: bool = True,
+        custom_features_list: list = [],
     ) -> None:
         self.skip_validated = skip_validated
         self.skip_intermediate_validated = skip_intermediate_validated
+
+        self.ALL_FUTURES = custom_features_list if custom_features_list else ALL_FUTURES
 
     def _preproccess(
         self,
         values: list[str],
         feature: AbstractFeature,
-        sign: Sign,
+        measure: Measure,
     ) -> list:
-        return [feature(value, sign) for value in values]
+        return [feature(value, measure) for value in values]
 
     def _feature_search(
         self,
         series: pd.Series,
         feature: AbstractFeature,
-        regex: Rx,
+        measure: Measure,
     ) -> pd.Series:
-        series = series.str.findall(regex.rx)
-        series = series.apply(self._preproccess, args=(feature, regex.sign))
+        series = series.str.findall(measure.regex)
+        series = series.apply(self._preproccess, args=(feature, measure))
         return series
 
     def _intermediate_validation(self, row: pd.Series) -> pd.Series:
@@ -88,20 +91,20 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
     def _extract(self, data: pd.DataFrame) -> pd.DataFrame:
         cur_df = data[:]  # current working dataframe
 
-        for feature in ALL_FUTURES:
+        for feature in self.ALL_FUTURES:
             cur_df[FEATURES.CI] = [[] for _ in range(len(cur_df))]
             cur_df[FEATURES.SI] = [[] for _ in range(len(cur_df))]
 
-            for regex in feature.RXS:
+            for measure in feature.MEASURES:
                 cif = self._feature_search(
                     cur_df[DATA.CLIENT_NAME],
                     feature,
-                    regex,
+                    measure,
                 )
                 sif = self._feature_search(
                     cur_df[DATA.ROW],
                     feature,
-                    regex,
+                    measure,
                 )
 
                 cur_df[FEATURES.CI] += sif
@@ -151,3 +154,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             FEATURES.CLIENT,
             FEATURES.SOURCE,
         ]
+
+
+if __name__ == "__main__":
+    pass

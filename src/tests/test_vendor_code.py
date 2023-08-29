@@ -4,32 +4,28 @@ import pytest
 import re
 import pandas as pd
 
-
 sys.path.append(str(Path(__file__).parent.parent))
 
 from vendor_code import (
     VendorCode,
-    ORIGINAL_VC,
-    EXTRACTED_VC,
-    VendorCodeTypeError,
     VendorCodeExtractor,
     VendorCodeSearch,
 )
-from notation import VALIDATION_ROW, VALIDATED, VENDOR_CODE
+from notation import RAW, DATA, VENDOR_CODE
 
 
 def test_vendor_code_type():
     txt = "km-1-3.29m"
 
-    vc1 = VendorCode(txt, ORIGINAL_VC)
-    vc2 = VendorCode(txt, EXTRACTED_VC)
+    vc1 = VendorCode(txt, VENDOR_CODE.TYPE.ORIGINAL)
+    vc2 = VendorCode(txt, VENDOR_CODE.TYPE.EXTRACTED)
 
-    with pytest.raises(VendorCodeTypeError):
+    with pytest.raises(Exception):
         vc3 = VendorCode(txt, "SomeType")
 
 
 def test_vendor_code_extractor_rx():
-    rx = VendorCodeExtractor.VCRX
+    rx = VendorCode.regex
 
     goods = [
         "товар 1 зеленый код ax-13.59.0",
@@ -46,7 +42,7 @@ def test_vendor_code_extractor_rx():
 
 
 def test_vendor_code_rx():
-    type_ = ORIGINAL_VC
+    type_ = VENDOR_CODE.TYPE.ORIGINAL
 
     vcodes = [
         "ax-13.59.0",
@@ -63,7 +59,8 @@ def test_vendor_code_rx():
 
 
 def test_vendor_code_search():
-    type_ = ORIGINAL_VC
+    type_ = VENDOR_CODE.TYPE.ORIGINAL
+
     data = pd.DataFrame(
         data=[
             [
@@ -79,13 +76,13 @@ def test_vendor_code_search():
                 1,
             ],
         ],
-        columns=[VENDOR_CODE, VALIDATION_ROW, VALIDATED, "MyMark"],
+        columns=[DATA.VC, DATA.ROW, DATA.VALIDATED, "MyMark"],
     )
 
     VC = VendorCodeSearch()
     val = VC.validate(data)[0]
 
-    result = val[VALIDATED] - val["MyMark"]
+    result = val[DATA.VALIDATED] - val["MyMark"]
     assert result.sum() == 0
 
 
