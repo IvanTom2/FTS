@@ -1,5 +1,10 @@
 import pandas as pd
 from fuzzywuzzy import process as fuzz_process
+from tqdm import tqdm
+import warnings
+
+warnings.filterwarnings("ignore")
+tqdm.pandas()
 
 from tokenization import Token, TokenTransformer
 
@@ -51,7 +56,7 @@ class FuzzySearch(object):
         left_tokens_column: str,
         right_tokens_column: str,
     ) -> pd.DataFrame:
-        data = data.apply(
+        data = data.progress_apply(
             self._search,
             args=(
                 left_tokens_column,

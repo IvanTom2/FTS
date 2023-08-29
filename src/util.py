@@ -1,6 +1,14 @@
 import pandas as pd
+import re
 
-from notation import RAW, SEMANTIC, DATA
+
+from notation import RAW, SEMANTIC, DATA, PATH
+
+
+def extract_domain(raw: pd.DataFrame) -> pd.DataFrame:
+    rx = "://(?:.*\.)?([a-zа-яё0-9_-]+\.[a-zа-яё]+)/"
+    raw[RAW.SOURCE] = raw[RAW.LINK].str.extract(rx)
+    return raw
 
 
 class DataReprMode(object):
@@ -29,11 +37,6 @@ class DataRepr(object):
     def _rename(self, data: pd.DataFrame):
         return data.rename(DATA.rename)
 
-    def extract_domain(self, raw: pd.DataFrame) -> pd.DataFrame:
-        rx = "://(?:.*\.)?([a-zа-яё]+\.[a-zа-яё]+)"
-        raw[RAW.SOURCE] = raw[RAW.LINK].str.extract(rx)
-        return raw
-
     def _default_mode(
         self,
         semantic: pd.DataFrame,
@@ -47,6 +50,9 @@ class DataRepr(object):
         )
 
         return self._change_columns(data)
+
+    def _extract_domain(self, data: pd.DataFrame) -> pd.DataFrame:
+        return extract_domain(data)
 
     def _decart_mode(
         self,
@@ -82,7 +88,7 @@ class DataRepr(object):
         semantic: pd.DataFrame,
         raw: pd.DataFrame,
     ) -> pd.DataFrame:
-        raw = self.extract_domain(raw)
+        raw = self._extract_domain(raw)
 
         match self.mode:
             case DataReprMode.DEFAULT:
@@ -92,4 +98,50 @@ class DataRepr(object):
 
 
 class TestDataPreprocess(object):
-    pass
+    def __init__(self):
+        pass
+
+    def _regex_check(self, row: pd.Series) -> pd.Series:
+        mark = re.search(
+            row[RAW.FAST_CHECK],
+            row[RAW.ROW],
+            flags=re.IGNORECASE,
+        )
+        row[RAW.MARK] = 1 if mark else 0
+        return row
+
+    def _fast_check(self, semantic: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
+        raw = raw.merge(
+            semantic[[SEMANTIC.QUERY, SEMANTIC.PLUS, SEMANTIC.CLIENT_NAME]],
+            how="left",
+            left_on=RAW.QUERY,
+            right_on=SEMANTIC.QUERY,
+        )
+
+        raw = raw.drop([SEMANTIC.QUERY], axis=1)
+        raw = raw.rename(columns={SEMANTIC.PLUS: RAW.FAST_CHECK})
+        raw = raw.apply(self._regex_check, axis=1)
+        return raw
+
+    def preprocess(self, semantic: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
+        raw = self._fast_check(semantic, raw)
+
+        raw = extract_domain(raw)
+        raw = raw.drop_duplicates(subset=[RAW.ROW, RAW.LINK])
+        raw = raw.sort_values(by=RAW.MARK, ascending=False)
+
+        raw = raw.groupby(
+            [RAW.SOURCE, RAW.QUERY],
+            group_keys=True,
+        ).apply(lambda x: x[:10])
+        return raw
+
+
+if __name__ == "__main__":
+    prepr = TestDataPreprocess()
+
+    semantic = pd.read_excel(PATH.Technique.file_path("semantic"))
+    raw = pd.read_excel(PATH.Technique.file_path("raw_original"))
+
+    raw = prepr.preprocess(semantic, raw)
+    raw.to_excel("test.xlsx", index=False)

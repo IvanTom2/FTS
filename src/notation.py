@@ -1,4 +1,6 @@
 from abc import ABC
+from pathlib import Path
+import os
 
 
 class NOTATION(ABC):
@@ -19,6 +21,9 @@ class RAW(NOTATION):
     BRAND = "Бренд"
     NAME = "Наименование"
     VC = "Артикул"
+
+    FAST_CHECK = "plus_word"
+    MARK = "fast_check_mark"
 
     SOURCE = "Источник"
 
@@ -56,8 +61,8 @@ class DATA(NOTATION):
     @property
     def rename(self):
         return {
-            RAW.NAME: self.CLIENT_NAME,
-            SEMANTIC.CLIENT_NAME: self.SOURCE_NAME,
+            RAW.NAME: self.SOURCE_NAME,
+            SEMANTIC.CLIENT_NAME: self.CLIENT_NAME,
         }
 
     @classmethod
@@ -152,3 +157,54 @@ class JAKKAR(NOTATION):
     CLIENT_TOKENS = "_client_tokens"
     SOURCE_TOKENS = "_source_tokens"
     RATIO_PATH = r"ratio.xlsx"
+
+
+class PATH(object):
+    _main_path = ""
+    _main_dir = "TEST_data"
+    _farmacy = "Farmacy"
+    _grocery = "Grocery"
+    _technique = "Technique"
+
+    @classmethod
+    def file_path(self, file: str) -> str:
+        files = os.listdir(self._main_path)
+        _file = [f for f in files if file in f]
+
+        if file == "raw":
+            _file = [f for f in _file if "original" not in f][0]
+        elif file == "semantic":
+            _file = [f for f in _file if "_" not in f][0]
+        else:
+            _file = [f for f in files if file in f][0]
+
+        path = self._main_path / _file
+        return path
+
+    @classmethod
+    @property
+    def Farmacy(self):
+        class Farmacy(PATH):
+            _main_path = Path(__file__).parent.parent / self._main_dir / self._farmacy
+
+        return Farmacy
+
+    @classmethod
+    @property
+    def Grocery(self):
+        class Grocery(PATH):
+            _main_path = Path(__file__).parent.parent / self._main_dir / self._grocery
+
+        return Grocery
+
+    @classmethod
+    @property
+    def Technique(self):
+        class Technique(PATH):
+            _main_path = Path(__file__).parent.parent / self._main_dir / self._technique
+
+        return Technique
+
+
+if __name__ == "__main__":
+    print(PATH.Farmacy.file_path("semantic"))

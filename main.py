@@ -38,7 +38,8 @@ class Validator(object):
         raw_path: str,
     ):
         semantic = self._upload_data(semantic_path)
-        semantic = self.VCExtractor.extract(semantic)
+        if self.VC is not None:
+            semantic = self.VCExtractor.extract(semantic)
 
         raw = self._upload_data(raw_path)
         data = self.data_repr.proccess(semantic, raw)
@@ -98,10 +99,10 @@ if __name__ == "__main__":
 
     jakkar = FuzzyJakkarValidator(
         tokenizer=BasicTokenizer(),
-        preprocessor=Preprocessor(0),
+        preprocessor=Preprocessor(2),
         fuzzy=FuzzySearch(65, transformer=TokenTransformer()),
         rate_counter=RateCounter(0, 1, 1, 0, RateFunction.sqrt2),
-        marks_counter=MarksCounter(MarksMode.UNION),
+        marks_counter=MarksCounter(MarksMode.MULTIPLE),
         validation_treshold=50,
         debug=True,
     )
@@ -109,12 +110,19 @@ if __name__ == "__main__":
     validator = Validator(
         data_repr=data_repr,
         VCExtractor=VCExtractor,
-        VC=VC,
-        TF=TF,
+        # VC=VC,
+        # TF=TF,
+        VC=None,
+        TF=None,
         jakkar=jakkar,
     )
 
-    validator.validate(
-        semantic_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\TEST_data\Grocery\Semantic.xlsx",
-        raw_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\TEST_data\Grocery\test_data_Grocery_raw.xlsx",
+    semantic_path = str(Path(__file__).parent / "semantic.xlsx")
+    raw_path = str(Path(__file__).parent / "raw_data.xlsx")
+
+    result = validator.validate(
+        semantic_path=semantic_path,
+        raw_path=raw_path,
     )
+
+    result.to_csv("output.csv", index=False)
