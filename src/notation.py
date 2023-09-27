@@ -26,6 +26,7 @@ class RAW(NOTATION):
     MARK = "fast_check_mark"
 
     SOURCE = "Источник"
+    MYMARK = "MyMark"
 
 
 class SEMANTIC(NOTATION):
@@ -43,7 +44,11 @@ class SEMANTIC(NOTATION):
     CATEGORY2 = "Категория 2"
     CLIENT_NAME = "Название клиента"
     CLIENT_IMG = "Ссылка на фото"
-    VC = "Артикул"
+
+    # working names
+    VC = "Vendor Code"
+    VNAME = "Name_v"
+    VBRAND = "Brand_v"
 
 
 class DATA(NOTATION):
@@ -56,6 +61,7 @@ class DATA(NOTATION):
     SOURCE_NAME = "Наименование товара на сайте"
 
     VALIDATED = "validated"
+    MYMARK = "MyMark"
 
     @classmethod
     @property
@@ -140,6 +146,7 @@ class FEATURES(NOTATION):
 
     STATUS = "Валидация по текстовым признакам"
     VALIDATED = "TF validation"
+    NOT_FOUND = "TF not found"
 
     @classmethod
     @property

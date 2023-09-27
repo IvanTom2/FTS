@@ -149,7 +149,7 @@ class FuzzyJakkarValidator(object):
             self.returning_columns,
         )
 
-    def validate(self, data: pd.DataFrame) -> pd.DataFrame:
+    def validate(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         data = self._create_working_rows(data)
 
         data = self._process_tokenization(data)
@@ -163,12 +163,14 @@ class FuzzyJakkarValidator(object):
         data = self._make_tokens_set(data)
         data = self._process_marks_count(data)
 
+        print(data)
+        print(data.columns)
+
         if self.debug:
             self._save_ratio()
 
         data = self._delete_working_rows(data)
 
-        # print(data)
         # data.to_excel("checkout.xlsx")
 
         return data, self.returning_columns
@@ -176,7 +178,7 @@ class FuzzyJakkarValidator(object):
 
 if __name__ == "__main__":
     # path = "/home/mainus/Data Sets/Апетки/TESTDATA_farmaimpex.xlsx"
-    path = "/home/mainus/Data Sets/Продукты/TESTDATA_vkusvill.xlsx"
+    path = r"C:\Users\tomilov-iv\Desktop\BrandPol\vkusvill_valid.xlsx"
 
     data = pd.read_excel(path)
 
@@ -190,9 +192,9 @@ if __name__ == "__main__":
 
     preprocessor = Preprocessor(2)
     transformer = TokenTransformer()
-    rate_counter = RateCounter()
-    fuzzy = FuzzySearch(65, transformer=transformer)
-    marks_counter = MarksCounter(MarksMode.UNION)
+    rate_counter = RateCounter(0.1, 0.2, 2, 0, RateFunction.sqrt2)
+    fuzzy = FuzzySearch(75, transformer=transformer)
+    marks_counter = MarksCounter(MarksMode.MULTIPLE)
 
     validator = FuzzyJakkarValidator(
         tokenizer=tokenizer,
@@ -203,4 +205,5 @@ if __name__ == "__main__":
         debug=True,
     )
 
-    validator.validate(data)
+    data, cols = validator.validate(data)
+    data.to_excel("vkusvill_checkout.xlsx")

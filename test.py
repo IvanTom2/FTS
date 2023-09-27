@@ -1,7 +1,12 @@
-from decimal import Decimal
+import regex as re
 
-integer = 1001
-kf = Decimal(str(0.001))
+# import re
 
-result = integer * kf
-print(float(result))
+string1 = r"n1"
+string2 = r"№1"
+
+rx = r"(?:n|№|x|х)\s*(?!1|(\.0)?)(\d*[,.]?\d+\s*шт)"
+# rx = r"(?:n|№|x|х)\s*\d*[.,]?\d+"
+
+print(re.findall(rx, string1))
+print(re.findall(rx, string2))

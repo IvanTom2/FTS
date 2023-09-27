@@ -47,6 +47,7 @@ class Validator(object):
         data[DATA.VALIDATED] = 0
         data[VENDOR_CODE.VALIDATED] = 0
         data[FEATURES.VALIDATED] = 0
+        data[FEATURES.NOT_FOUND] = ""
         return data
 
     def _process_validation(
@@ -113,12 +114,31 @@ if __name__ == "__main__":
         # VC=VC,
         VC=None,
         TF=TF,
-        jakkar=jakkar,
+        # jakkar=jakkar,
+        jakkar=None,
     )
 
     result = validator.validate(
-        semantic_path="test_semantic.xlsx",
-        raw_path="test_raw.xlsx",
+        semantic_path="Farma_Semantic.xlsx",
+        raw_path="Farma_Raw.xlsx",
     )
 
-    result.to_excel("output.xlsx", index=False)
+    # result = validator.validate(
+    #     semantic_path="test_semantic.xlsx",
+    #     raw_path="test_raw.xlsx",
+    # )
+
+    result = result[
+        [
+            DATA.ROW,
+            DATA.CLIENT_NAME,
+            DATA.MYMARK,
+            FEATURES.VALIDATED,
+            FEATURES.NOT_FOUND,
+            FEATURES.STATUS,
+            FEATURES.CLIENT,
+            FEATURES.SOURCE,
+        ]
+    ]
+
+    result.to_excel("Farma_Checkout.xlsx", index=False)

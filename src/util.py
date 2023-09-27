@@ -34,8 +34,13 @@ class DataRepr(object):
             raise NotImplementedError()
         return mode
 
-    def _rename(self, data: pd.DataFrame):
+    def _rename(self, data: pd.DataFrame) -> pd.DataFrame:
         return data.rename(DATA.rename)
+
+    def _expand_str_column(self, data: pd.DataFrame, column: str) -> pd.DataFrame:
+        print(column)
+        data[column] = " " + data[column] + " "
+        return data
 
     def _default_mode(
         self,
@@ -48,6 +53,9 @@ class DataRepr(object):
             left_on=RAW.QUERY,
             right_on=SEMANTIC.QUERY,
         )
+
+        if RAW.MYMARK in raw.columns:
+            data[DATA.MYMARK] = raw[RAW.MYMARK]
 
         return self._change_columns(data)
 
@@ -80,7 +88,9 @@ class DataRepr(object):
     def _change_columns(self, data: pd.DataFrame) -> pd.DataFrame:
         data = data.drop(DATA.to_drop, axis=1)
         data = data.rename(columns=DATA.rename)
-        data = data[DATA.columns_order]
+
+        not_in_order = [col for col in data.columns if col not in DATA.columns_order]
+        data = data[DATA.columns_order + not_in_order]
         return data
 
     def proccess(
@@ -92,9 +102,13 @@ class DataRepr(object):
 
         match self.mode:
             case DataReprMode.DEFAULT:
-                return self._default_mode(semantic, raw)
+                data = self._default_mode(semantic, raw)
             case DataReprMode.DECART:
-                return self._decart_mode(semantic, raw)
+                data = self._decart_mode(semantic, raw)
+
+        data = self._expand_str_column(data, DATA.ROW)
+        data = self._expand_str_column(data, DATA.CLIENT_NAME)
+        return data
 
 
 class TestDataPreprocess(object):
