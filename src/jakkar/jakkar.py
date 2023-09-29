@@ -178,7 +178,7 @@ class FuzzyJakkarValidator(object):
 
 if __name__ == "__main__":
     # path = "/home/mainus/Data Sets/Апетки/TESTDATA_farmaimpex.xlsx"
-    path = r"C:\Users\tomilov-iv\Desktop\BrandPol\vkusvill_valid.xlsx"
+    path = r"C:\Users\tomilov-iv\Desktop\BrandPol\vkusvill_non_validated_by_semantic.xlsx"
 
     data = pd.read_excel(path)
 
@@ -206,4 +206,4 @@ if __name__ == "__main__":
     )
 
     data, cols = validator.validate(data)
-    data.to_excel("vkusvill_checkout.xlsx")
+    data.to_excel("vkusvill_checkout_non_validated.xlsx")
