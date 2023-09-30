@@ -3,6 +3,7 @@ import re
 
 
 from notation import RAW, SEMANTIC, DATA, PATH
+from vendor_code import VendorCodeSearch, VendorCodeExtractor
 
 
 def extract_domain(raw: pd.DataFrame) -> pd.DataFrame:
@@ -12,24 +13,32 @@ def extract_domain(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 class DataReprMode(object):
-    DEFAULT = "default"
-    DECART = "decart"
+    VALIDATION = "validation"
+    RAW = "raw"
+    RAW_DECART = "decart"
 
 
 class DataRepr(object):
     """
     Данные могут быть представлены в двух видах:
     1. Обычный вид валидационного файла
-    2. Декартово множество на основе названий клиента и названий источников
+    2. Сырые данные и семантика, превращенные валидационный файл
+    3. Декартово множество
     """
 
-    def __init__(self, mode: DataReprMode) -> None:
+    def __init__(
+        self,
+        mode: DataReprMode,
+        # VCExtractor: VendorCodeExtractor,
+    ) -> None:
         self.mode = self._checkout_mode(mode)
+        # self.VCExtractor = VCExtractor
 
     def _checkout_mode(self, mode: str) -> str:
         if mode not in [
-            DataReprMode.DEFAULT,
-            DataReprMode.DECART,
+            DataReprMode.RAW,
+            DataReprMode.RAW_DECART,
+            DataReprMode.VALIDATION,
         ]:
             raise NotImplementedError()
         return mode
@@ -38,7 +47,6 @@ class DataRepr(object):
         return data.rename(DATA.rename)
 
     def _expand_str_column(self, data: pd.DataFrame, column: str) -> pd.DataFrame:
-        print(column)
         data[column] = " " + data[column] + " "
         return data
 
@@ -93,18 +101,48 @@ class DataRepr(object):
         data = data[DATA.columns_order + not_in_order]
         return data
 
-    def proccess(
+    def _upload_data(self, path: str) -> pd.DataFrame:
+        return pd.read_excel(path)
+
+    def _process_raw(
         self,
-        semantic: pd.DataFrame,
-        raw: pd.DataFrame,
+        semantic_path: str,
+        raw_path: str,
     ) -> pd.DataFrame:
+        semantic = self._upload_data(semantic_path)
+        raw = self._upload_data(raw_path)
         raw = self._extract_domain(raw)
 
+        if self.mode is DataReprMode.RAW:
+            data = self._default_mode(semantic, raw)
+        elif self.mode is DataReprMode.RAW_DECART:
+            data = self._decart_mode(semantic, raw)
+
+        return data
+
+    def _process_validation(
+        self,
+        validation_path: str,
+    ) -> pd.DataFrame:
+        data = self._upload_data(validation_path)
+        return data
+
+    def proccess(
+        self,
+        semantic_path: str,
+        raw_path: str,
+        validation_path: str,
+    ) -> pd.DataFrame:
         match self.mode:
-            case DataReprMode.DEFAULT:
-                data = self._default_mode(semantic, raw)
-            case DataReprMode.DECART:
-                data = self._decart_mode(semantic, raw)
+            case DataReprMode.RAW:
+                data = self._process_raw(semantic_path, raw_path)
+            case DataReprMode.RAW_DECART:
+                data = self._process_raw(semantic_path, raw_path)
+            case DataReprMode.VALIDATION:
+                data = self._process_validation(validation_path)
+
+        # if self.VCExtractor is not None:
+        #     data = self.VCExtractor.extract(data)
 
         data = self._expand_str_column(data, DATA.ROW)
         data = self._expand_str_column(data, DATA.CLIENT_NAME)

@@ -9,40 +9,37 @@ sys.path.append(str(Path(__file__).parent / "src"))
 from src.util import DataRepr, DataReprMode
 from src.vendor_code import VendorCodeSearch, VendorCodeExtractor
 from src.text_feature import TextFeatureSearch
+from src.metrics import JakkarMetric
 from notation import DATA, VENDOR_CODE, FEATURES
 from collections.abc import Callable
 from jakkar.jakkar import *
+from main_util import TEST_DATA
 
 
 class Validator(object):
     def __init__(
         self,
         data_repr: DataRepr,
-        VCExtractor: VendorCodeExtractor,
         VC: Union[VendorCodeSearch, None],
         TF: Union[TextFeatureSearch, None],
         jakkar: Union[FuzzyJakkarValidator, None],
     ) -> None:
         self.data_repr = data_repr
-        self.VCExtractor = VCExtractor
         self.VC = VC
         self.TF = TF
         self.jakkar = jakkar
-
-    def _upload_data(self, path: str) -> pd.DataFrame:
-        return pd.read_excel(path)
 
     def _get_data(
         self,
         semantic_path: str,
         raw_path: str,
+        validation_path: str,
     ):
-        semantic = self._upload_data(semantic_path)
-        if self.VC is not None:
-            semantic = self.VCExtractor.extract(semantic)
-
-        raw = self._upload_data(raw_path)
-        data = self.data_repr.proccess(semantic, raw)
+        data = self.data_repr.proccess(
+            semantic_path,
+            raw_path,
+            validation_path,
+        )
 
         data[DATA.VALIDATED] = 0
         data[VENDOR_CODE.VALIDATED] = 0
@@ -65,10 +62,12 @@ class Validator(object):
         self,
         semantic_path: str,
         raw_path: str,
+        validation_path: str,
     ) -> pd.DataFrame:
         data = self._get_data(
             semantic_path,
             raw_path,
+            validation_path,
         )
 
         if self.VC is not None:
@@ -93,16 +92,22 @@ if __name__ == "__main__":
     6. Запуск Джаккара
     """
 
-    data_repr = DataRepr(DataReprMode.DEFAULT)
-    VCExtractor = VendorCodeExtractor()
+    # VCExtractor = VendorCodeExtractor()
+    data_repr = DataRepr(DataReprMode.VALIDATION)
     VC = VendorCodeSearch(True)
     TF = TextFeatureSearch(True)
 
     jakkar = FuzzyJakkarValidator(
-        tokenizer=BasicTokenizer(),
+        tokenizer=RegexTokenizer(
+            {
+                LanguageType.RUS: 1,
+                LanguageType.ENG: 1,
+            },
+            weights_rules=RegexCustomWeights(1, 1, 1, 1),
+        ),
         preprocessor=Preprocessor(2),
-        fuzzy=FuzzySearch(65, transformer=TokenTransformer()),
-        rate_counter=RateCounter(0, 1, 1, 0, RateFunction.sqrt2),
+        fuzzy=FuzzySearch(75, transformer=TokenTransformer()),
+        rate_counter=RateCounter(0.1, 0.2, 2, 0, RateFunction.sqrt2),
         marks_counter=MarksCounter(MarksMode.MULTIPLE),
         validation_treshold=50,
         debug=True,
@@ -110,35 +115,18 @@ if __name__ == "__main__":
 
     validator = Validator(
         data_repr=data_repr,
-        VCExtractor=VCExtractor,
-        # VC=VC,
         VC=None,
-        TF=TF,
-        # jakkar=jakkar,
-        jakkar=None,
+        TF=None,
+        jakkar=jakkar,
     )
 
     result = validator.validate(
-        semantic_path="Farma_Semantic.xlsx",
-        raw_path="Farma_Raw.xlsx",
+        semantic_path=None,
+        raw_path=None,
+        validation_path=TEST_DATA.VKUSVILL2,
     )
 
-    # result = validator.validate(
-    #     semantic_path="test_semantic.xlsx",
-    #     raw_path="test_raw.xlsx",
-    # )
+    jakkar_metrics = JakkarMetric(0.5)
+    jakkar_metrics.estimate(result)
 
-    result = result[
-        [
-            DATA.ROW,
-            DATA.CLIENT_NAME,
-            DATA.MYMARK,
-            FEATURES.VALIDATED,
-            FEATURES.NOT_FOUND,
-            FEATURES.STATUS,
-            FEATURES.CLIENT,
-            FEATURES.SOURCE,
-        ]
-    ]
-
-    result.to_excel("Farma_Checkout.xlsx", index=False)
+    # result.to_excel("checkout.xlsx", index=False)

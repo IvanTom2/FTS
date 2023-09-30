@@ -1,7 +1,8 @@
 pandas
 fuzzywuzzy
-python-Levenstein
+python-Levenshtein
 numpy
 scikit-learn
 pytest
 nltk
+openpyxl

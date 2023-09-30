@@ -7,7 +7,6 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score
 sys.path.append(str(Path(__file__).parent.parent))
 
 from jakkar.jakkar import *
-from main import *
 
 
 class Metric(object):
@@ -38,7 +37,7 @@ class Metric(object):
 
 class JakkarMetric(object):
     def __init__(self, treshold: float) -> None:
-        self.treshold = treshold
+        self._treshold = treshold
 
     def estimate(self, data: pd.DataFrame) -> None:
         labels = [MarksMode.CLIENT, MarksMode.SOURCE, MarksMode.UNION]
@@ -49,7 +48,7 @@ class JakkarMetric(object):
                 print("-----------------------------------")
 
                 prediction = np.where(
-                    data[label] >= self.treshold,
+                    data[label] >= self._treshold,
                     1,
                     0,
                 )
@@ -130,4 +129,6 @@ def features_setup():
 
 
 if __name__ == "__main__":
+    from main import *
+
     jakkar_setup()

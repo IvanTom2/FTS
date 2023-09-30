@@ -4,7 +4,9 @@ import sys
 
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 sys.path.append(str(Path(__file__).parent.parent / "jakkar" / "strmod"))
+
 
 from notation import JAKKAR, DATA
 from preprocessing import Preprocessor
@@ -17,6 +19,7 @@ from tokenization import (
     RegexCustomWeights,
     LanguageType,
 )
+from main_util import TEST_DATA
 
 
 class FuzzyJakkarValidator(object):
@@ -126,10 +129,12 @@ class FuzzyJakkarValidator(object):
         return validation
 
     def _process_fuzzy(self, data: pd.DataFrame) -> pd.DataFrame:
+        self._progress_ind("make_fuzzy")
         data = self.fuzzy.search(data, JAKKAR.CLIENT_TOKENS, JAKKAR.SOURCE_TOKENS)
         return data
 
     def _process_ratio(self, data: pd.DataFrame) -> pd.DataFrame:
+        self._progress_ind("make_ratio")
         ratio = self.rate_counter.count_ratio(
             data,
             JAKKAR.CLIENT_TOKENS,
@@ -163,30 +168,23 @@ class FuzzyJakkarValidator(object):
         data = self._make_tokens_set(data)
         data = self._process_marks_count(data)
 
-        print(data)
-        print(data.columns)
-
         if self.debug:
             self._save_ratio()
 
         data = self._delete_working_rows(data)
 
-        # data.to_excel("checkout.xlsx")
-
         return data, self.returning_columns
 
 
 if __name__ == "__main__":
-    # path = "/home/mainus/Data Sets/Апетки/TESTDATA_farmaimpex.xlsx"
-    path = r"C:\Users\tomilov-iv\Desktop\BrandPol\vkusvill_non_validated_by_semantic.xlsx"
-
-    data = pd.read_excel(path)
-
-    # tokenizer = BasicTokenizer()
+    data = pd.read_excel(TEST_DATA.VKUSVILL2)
 
     regex_weights = RegexCustomWeights(1, 1, 1, 1)
     tokenizer = RegexTokenizer(
-        {LanguageType.RUS: 1, LanguageType.ENG: 1},
+        {
+            LanguageType.RUS: 1,
+            LanguageType.ENG: 1,
+        },
         weights_rules=regex_weights,
     )
 
@@ -205,5 +203,5 @@ if __name__ == "__main__":
         debug=True,
     )
 
-    data, cols = validator.validate(data)
-    data.to_excel("vkusvill_checkout_non_validated.xlsx")
+    # data, cols = validator.validate(data)
+    # data.to_excel("vkusvill2_checkout.xlsx")
