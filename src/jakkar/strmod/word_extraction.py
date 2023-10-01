@@ -2,6 +2,7 @@ import pandas as pd
 
 from word_extraction_funcs import (
     LanguageRules,
+    LanguageType,
     extractWords,
     deleteWords,
     extractWordsWithMultipleLangsLetters,
@@ -137,20 +138,20 @@ class StraightWordExtractor(Extractor):
 
 
 if __name__ == "__main__":
-    data = pd.DataFrame(data=["Привет Мир! Ваня228 Ajax Ajax17"], columns=["Название"])
+    data = pd.DataFrame(
+        data=["Привет Мир! ЖОПА1234-1234 Ваня228 Ajax Ajax17"], columns=["Название"]
+    )
 
     ru = LanguageRules(
-        "russian", rule_name="жопа", word_boundary=True, with_numbers=True
-    )
-    eng = LanguageRules(
-        "english", rule_name="jopa", word_boundary=True, with_numbers=True
+        LanguageType.RUS,
+        rule_name="жопа",
+        word_boundary=True,
+        with_numbers=True,
+        startUpper=True,
+        check_letters=True,
     )
 
-    ru_extractor = WordsExtractor(rules=ru)
-    eng_extractor = WordsExtractor(rules=eng)
-    straigth_extractor = StraightWordExtractor([ru, eng])
+    extractor = WordsExtractor(ru, True, True)
 
-    d = ru_extractor.extract(data, "Название")
-    d = eng_extractor.extract(data, "Название")
-    d = straigth_extractor.extract(data, "Название")
-    print(d)
+    data = extractor.extract(data, "Название")
+    print(data)

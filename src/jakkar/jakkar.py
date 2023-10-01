@@ -45,7 +45,10 @@ class FuzzyJakkarValidator(object):
         self.validation_treshold = validation_treshold
 
         self.symbols_to_del = r"'\"/"
-        self.returning_columns = []
+        self.returning_columns = [
+            JAKKAR.CLIENT_TOKENS_COUNT,
+            JAKKAR.SOURCE_TOKENS_COUNT,
+        ]
 
         if self.debug:
             self.returning_columns.extend(
@@ -154,6 +157,18 @@ class FuzzyJakkarValidator(object):
             self.returning_columns,
         )
 
+    def _process_tokens_count(
+        self,
+        data: pd.DataFrame,
+    ) -> pd.DataFrame:
+        data[JAKKAR.CLIENT_TOKENS_COUNT] = data[JAKKAR.CLIENT_TOKENS].apply(
+            lambda x: len(x)
+        )
+        data[JAKKAR.SOURCE_TOKENS_COUNT] = data[JAKKAR.SOURCE_TOKENS].apply(
+            lambda x: len(x)
+        )
+        return data
+
     def validate(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         data = self._create_working_rows(data)
 
@@ -166,6 +181,7 @@ class FuzzyJakkarValidator(object):
         self.ratio = self._process_ratio(data)
 
         data = self._make_tokens_set(data)
+        data = self._process_tokens_count(data)
         data = self._process_marks_count(data)
 
         if self.debug:

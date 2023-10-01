@@ -107,7 +107,7 @@ if __name__ == "__main__":
         ),
         preprocessor=Preprocessor(2),
         fuzzy=FuzzySearch(75, transformer=TokenTransformer()),
-        rate_counter=RateCounter(0.1, 0.2, 2, 0, RateFunction.sqrt2),
+        rate_counter=RateCounter(0, 1, 2, 0, RateFunction.sqrt2),
         marks_counter=MarksCounter(MarksMode.MULTIPLE),
         validation_treshold=50,
         debug=True,

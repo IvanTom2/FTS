@@ -6,7 +6,7 @@ from tokenization import Token
 
 from collections import Counter
 from itertools import chain
-from math import sqrt
+from math import sqrt, log10
 
 
 class AbstactRateCounter(ABC):
@@ -20,13 +20,78 @@ class AbstactRateCounter(ABC):
 
 class RateFunction(object):
     @classmethod
-    def default(self, value: int) -> int:
+    def default(
+        self,
+        value: int,
+        max_value: int,
+    ) -> int:
         return value
 
     @classmethod
-    def sqrt2(self, value: int) -> float:
+    def sqrt2(
+        self,
+        value: int,
+        max_value: int,
+    ) -> float:
         if value != 0:
             return sqrt(value)
+        return value
+
+    @classmethod
+    def sqrt3(
+        self,
+        value: int,
+        max_value: int,
+    ) -> float:
+        if value != 0:
+            return value ** (0.33)
+        return value
+
+    @classmethod
+    def sqrt4(
+        self,
+        value: int,
+        max_value: int,
+    ) -> float:
+        if value != 0:
+            return value ** (0.25)
+        return value
+
+    @classmethod
+    def log(self, value: int, max_value: int) -> float:
+        if value != 0:
+            return log10(value)
+        return value
+
+    @classmethod
+    def _reverse(self, value) -> float:
+        try:
+            if value != 0:
+                value = 1 / value
+            else:
+                value = 0
+        except Exception as ex:
+            value = 0
+
+        return value
+
+    @classmethod
+    def parabaloid(
+        self,
+        value: int,
+        max_value: int,
+    ) -> float:
+        def parab_func(value) -> float:
+            value = -4 * value**2 + 4 * value
+            return value
+
+        if max_value != 0:
+            value = value / max_value
+            value = parab_func(value)
+            value = self._reverse(value)
+        else:
+            value = value
+
         return value
 
 
@@ -56,15 +121,15 @@ class RateCounter(AbstactRateCounter):
         )
         tokens: list[Token] = list(chain(*tokens))
 
-        # in case if passed sets of tokens
+        ## in case if passed sets of tokens
         # tokens: list[Token] = list(chain(*map(list, tokens)))
         return tokens
 
-    def _rate_function(self, value: int) -> float:
+    def _rate_function(self, value: int, max_value: int) -> float:
         try:
             if self.rate_function is not None:
                 if callable(self.rate_function):
-                    value = self.rate_function(value)
+                    value = self.rate_function(value, max_value)
 
             if value != 0:
                 value_rate = 1 / value
@@ -88,8 +153,8 @@ class RateCounter(AbstactRateCounter):
         value_rate = self.max_ratio if value_rate > self.max_ratio else value_rate
         return value_rate
 
-    def _count_ratio(self, value: int) -> float:
-        value_rate = self._rate_function(value)
+    def _count_ratio(self, value: int, max_value: int) -> float:
+        value_rate = self._rate_function(value, max_value)
         value_rate = self._min_max(value_rate)
         value_rate *= self._uniq_penalty(value)
 
@@ -99,9 +164,10 @@ class RateCounter(AbstactRateCounter):
         ratio = {}
         tokens_values = [token.value for token in tokens]
         counts = Counter(tokens_values)
+        max_value = counts.most_common()[0][1]
 
         for key, value in counts.items():
-            rate = self._count_ratio(value)
+            rate = self._count_ratio(value, max_value)
             ratio[key] = rate
 
         return ratio

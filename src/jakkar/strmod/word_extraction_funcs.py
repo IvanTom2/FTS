@@ -98,7 +98,7 @@ class LanguageRules(object):
         startUpper: bool = False,
         onlyUpper: bool = False,
         check_letters: bool = False,
-        symbols: str = "-",
+        symbols: str = "",
         word_boundary: bool = False,
         custom_boundary: str = "",
         with_numbers: bool = False,

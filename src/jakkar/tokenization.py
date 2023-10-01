@@ -146,7 +146,7 @@ class RegexCustomWeights(object):
         capital: int,
         low: int,
         other: int,
-        symbols: str = "-",
+        symbols: str = "",
         word_boundary: bool = True,
         custom_boundary: str = "",
     ) -> None:
@@ -160,6 +160,12 @@ class RegexCustomWeights(object):
         self.custom_boundary = custom_boundary
 
     def get_rules(self) -> dict:
+        """
+        Don't change the order of the rules dictionary: caps -> capital -> low -> other.
+        It should be ordered because words extracting recursively with deletion.
+        The order and deletion help extract capital-words without caps-words,
+        low-words without capital-words and so on.
+        """
         rules = {
             "caps": WeightsRules(
                 {

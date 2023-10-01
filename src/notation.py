@@ -161,8 +161,13 @@ class FEATURES(NOTATION):
 class JAKKAR(NOTATION):
     CLIENT = "_client"
     SOURCE = "_source"
+
     CLIENT_TOKENS = "_client_tokens"
     SOURCE_TOKENS = "_source_tokens"
+
+    CLIENT_TOKENS_COUNT = "client_tokens_count"
+    SOURCE_TOKENS_COUNT = "source_tokens_count"
+
     RATIO_PATH = r"ratio.xlsx"
 
 
