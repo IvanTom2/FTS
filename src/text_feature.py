@@ -5,6 +5,7 @@ import numpy as np
 from typing import Union
 import regex as re
 from tqdm import tqdm
+import multiprocessing
 
 tqdm.pandas()
 
@@ -188,7 +189,11 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
         return data
 
-    def validate(self, data: pd.DataFrame) -> pd.DataFrame:
+    def validate(
+        self,
+        data: pd.DataFrame,
+        process_pool: multiprocessing.Pool,
+    ) -> pd.DataFrame:
         if self.skip_validated:
             data = data[data[DATA.VALIDATION_STATUS] == 0]
 

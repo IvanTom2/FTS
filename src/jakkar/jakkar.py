@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import multiprocessing
 
 
 sys.path.append(str(Path(__file__).parent))
@@ -135,9 +136,18 @@ class FuzzyJakkarValidator(object):
         )
         return validation
 
-    def _process_fuzzy(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _process_fuzzy(
+        self,
+        data: pd.DataFrame,
+        process_pool: multiprocessing.Pool,
+    ) -> pd.DataFrame:
         self._progress_ind("make_fuzzy")
-        data = self.fuzzy.search(data, JAKKAR.CLIENT_TOKENS, JAKKAR.SOURCE_TOKENS)
+        data = self.fuzzy.search(
+            data,
+            JAKKAR.CLIENT_TOKENS,
+            JAKKAR.SOURCE_TOKENS,
+            process_pool,
+        )
         return data
 
     def _process_ratio(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -173,7 +183,11 @@ class FuzzyJakkarValidator(object):
         )
         return data
 
-    def validate(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    def validate(
+        self,
+        data: pd.DataFrame,
+        process_pool: multiprocessing.Pool,
+    ) -> tuple[pd.DataFrame, list[str]]:
         data = self._create_working_rows(data)
 
         data = self._process_tokenization(data)
@@ -181,7 +195,7 @@ class FuzzyJakkarValidator(object):
 
         # очистка токенов-символов по типу (, ), \, . и т.д.
         # актуально для word_tokenizer
-        data = self._process_fuzzy(data)
+        data = self._process_fuzzy(data, process_pool)
         self.ratio = self._process_ratio(data)
 
         data = self._make_tokens_set(data)

@@ -1,9 +1,10 @@
 import os
 import sys
 import time
+import pandas as pd
+import multiprocessing
 from pathlib import Path
 from typing import Union
-import pandas as pd
 
 sys.path.append(str(Path(__file__).parent / "src"))
 
@@ -24,11 +25,16 @@ class Validator(object):
         VC: Union[VendorCodeSearch, None],
         TF: Union[TextFeatureSearch, None],
         jakkar: Union[FuzzyJakkarValidator, None],
+        max_processes: int = 0,
     ) -> None:
         self.data_repr = data_repr
         self.VC = VC
         self.TF = TF
         self.jakkar = jakkar
+
+        self.process_pool = None
+        if max_processes:
+            self.process_pool = multiprocessing.Pool(max_processes)
 
     def _get_data(
         self,
@@ -56,7 +62,7 @@ class Validator(object):
         data: pd.DataFrame,
     ):
         new_data: pd.DataFrame
-        new_data, columns = function(data)
+        new_data, columns = function(data, self.process_pool)
 
         data.loc[new_data.index, columns] = new_data[columns]
         return data
@@ -81,6 +87,9 @@ class Validator(object):
 
         if self.jakkar is not None:
             data = self._process_validation(self.jakkar.validate, data)
+
+        if self.process_pool:
+            self.process_pool.close()
 
         return data
 
@@ -127,11 +136,11 @@ if __name__ == "__main__":
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\validation.xlsx",
+        validation_path=r"/home/mainus/Projects/MLp/products_matching/BrandPol/КАТРЕН_ОЗОН2.xlsx",
     )
     print("END UP WITH", round(time.time() - start), "SECONDS")
 
-    # jakkar_metrics = JakkarMetric(0.5)
-    # jakkar_metrics.estimate(result)
+    jakkar_metrics = JakkarMetric(0.5)
+    jakkar_metrics.estimate(result)
 
     result.to_excel("checkout.xlsx", index=False)

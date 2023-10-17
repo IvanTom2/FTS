@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 import os
 
-from autosem.autosem_funcs.word_extraction_funcs import (
+from strmod.word_extraction_funcs import (
     LanguageRules,
     extractWords,
     deleteWords,
@@ -142,10 +142,10 @@ if __name__ == "__main__":
     data = pd.DataFrame(data=["Привет Мир! Ваня228 Ajax Ajax17"], columns=["Название"])
 
     ru = LanguageRules(
-        "russian", rule_name="жопа", word_boundary=True, with_numbers=True
+        "russian", rule_name="1", word_boundary=True, with_numbers=True
     )
     eng = LanguageRules(
-        "english", rule_name="jopa", word_boundary=True, with_numbers=True
+        "english", rule_name="2", word_boundary=True, with_numbers=True
     )
 
     ru_extractor = WordsExtractor(rules=ru)

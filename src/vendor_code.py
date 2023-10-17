@@ -3,6 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Union
 import re
+import multiprocessing
 
 from notation import SEMANTIC, VENDOR_CODE, DATA
 
@@ -130,7 +131,11 @@ class VendorCodeSearch(AbstractVendorCodeSearch):
         row[VENDOR_CODE.STATUS] = "No vendor code"
         return row
 
-    def validate(self, data: pd.DataFrame) -> pd.DataFrame:
+    def validate(
+        self,
+        data: pd.DataFrame,
+        process_pool: multiprocessing.Pool,
+    ) -> pd.DataFrame:
         if self.skip_validated:
             data = data[data[DATA.VALIDATION_STATUS] == 0]
 
