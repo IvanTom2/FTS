@@ -206,6 +206,12 @@ class MarksCounter(AbstractMarksCounter):
     ) -> None:
         self.mode = mode
 
+    @property
+    def validation_column(self):
+        if self.mode is MarksMode.MULTIPLE:
+            return MarksMode.UNION
+        return self.mode
+
     def _find_ratio(self, tokens: set[Token]):
         tokens_rates = [
             self.ratio[token.value] * token.custom_weight for token in tokens

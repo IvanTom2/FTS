@@ -112,25 +112,27 @@ class VendorCodeSearch(AbstractVendorCodeSearch):
                     row[DATA.ROW],
                     flags=re.IGNORECASE,
                 ):
-                    row[DATA.VALIDATED] = 1
-                    row[VENDOR_CODE.VALIDATED] = 1
+                    row[DATA.VALIDATION_STATUS] = 1
+                    row[DATA.VALIDATED] = row[DATA.VALIDATED]
+                    row[VENDOR_CODE.VALIDATED] = row[VENDOR_CODE.VALIDATED]
                     row[VENDOR_CODE.STATUS] = f"Validated by {vendor_code.type}"
                     return row
                 continue
 
+            row[DATA.VALIDATION_STATUS] = 1
             row[DATA.VALIDATED] = 0
             row[VENDOR_CODE.VALIDATED] = 0
             row[VENDOR_CODE.STATUS] = "Not validated"
             return row
 
-        row[DATA.VALIDATED] = 0
-        row[VENDOR_CODE.VALIDATED] = 0
+        row[DATA.VALIDATED] = row[DATA.VALIDATED]
+        row[VENDOR_CODE.VALIDATED] = row[VENDOR_CODE.VALIDATED]
         row[VENDOR_CODE.STATUS] = "No vendor code"
         return row
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.skip_validated:
-            data = data[data[DATA.VALIDATED] == 0]
+            data = data[data[DATA.VALIDATION_STATUS] == 0]
 
         data = data.apply(self._validate, axis=1)
         return data, [DATA.VALIDATED, VENDOR_CODE.VALIDATED, VENDOR_CODE.STATUS]

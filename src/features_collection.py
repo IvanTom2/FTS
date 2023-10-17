@@ -271,7 +271,8 @@ class NumericalFeature(AbstractFeature):
         self.standard_value = self._standartization(value, measure)
 
     def _standartization(self, value: str, measure: Measure):
-        num_value = re.search(r"\d*[.,]?\d+", value)[0]
+        # num_value = re.search(r"\d*[.,]?\d+", value)[0]
+        num_value = re.search(r"\d+[.,]?\d*", value)[0]
         num_value = num_value.replace(",", ".")
         num_value = Decimal(num_value)
 
@@ -363,29 +364,19 @@ class MemoryCapacity(NumericalFeature):
 
 
 class Quantity(NumericalFeature):
-    """
-    ЗДЕСЬ ЕСТЬ ПРОБЛЕМА С РЕГУЛЯРКОЙ
-    r"(?!1|1.0?)\d*[,.]?\d+\s*(?:шт|уп|пач)"
-    r"(?:n|№|x|х)(?!1|1.0)\s*\d*[,.]?\d+"
-
-    Возникает проблема с 10, 100, 1000 и т.д.
-    """
-
     MEASURES = FeatureMeasures(
         measures=[
             Measure(
                 "Количество",
                 1,
                 "",
-                # r"(?:n|№|x|х)\s*(?:n|№|x|х)\s*(?!1|(\.0)?)\d*[,.]?\d+\s*шт",
-                r"(?!1|1.0?)\d*[,.]?\d+\s*(?:шт|уп|пач|доз)",
+                r"([2-9][,.]?\d*|[1-9]\d+[,.]?\d*)\s*(?:шт|уп|пач|доз)",
             ),
             Measure(
                 "Нумерованное количество",
                 1,
                 "",
-                # r"(?!1|(\.0)?)\d*[,.]?\d+\s*шт\s*(?:шт|уп|пач)",
-                r"(?:n|№|x|х)(?!1|1.0)\s*\d*[,.]?\d+",
+                r"(?:n|№|x|х)\s*([2-9][,.]?\d*|[1-9]\d+[,.]?\d*)",
             ),
         ],
     )

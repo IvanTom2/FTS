@@ -1,8 +1,9 @@
-import pandas as pd
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Union
+import pandas as pd
 
 sys.path.append(str(Path(__file__).parent / "src"))
 
@@ -10,7 +11,7 @@ from src.util import DataRepr, DataReprMode
 from src.vendor_code import VendorCodeSearch, VendorCodeExtractor
 from src.text_feature import TextFeatureSearch
 from src.metrics import JakkarMetric
-from notation import DATA, VENDOR_CODE, FEATURES
+from notation import DATA, VENDOR_CODE, FEATURES, JAKKAR
 from collections.abc import Callable
 from jakkar.jakkar import *
 from main_util import TEST_DATA
@@ -41,9 +42,11 @@ class Validator(object):
             validation_path,
         )
 
-        data[DATA.VALIDATED] = 0
-        data[VENDOR_CODE.VALIDATED] = 0
-        data[FEATURES.VALIDATED] = 0
+        data[DATA.VALIDATION_STATUS] = 0
+        data[DATA.VALIDATED] = 1
+        data[VENDOR_CODE.VALIDATED] = 1
+        data[FEATURES.VALIDATED] = 1
+        data[JAKKAR.VALIDATED] = 1
         data[FEATURES.NOT_FOUND] = ""
         return data
 
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     # VCExtractor = VendorCodeExtractor()
     data_repr = DataRepr(DataReprMode.VALIDATION)
     VC = VendorCodeSearch(True)
-    TF = TextFeatureSearch(True)
+    TF = TextFeatureSearch(True, True)
 
     jakkar = FuzzyJakkarValidator(
         tokenizer=RegexTokenizer(
@@ -109,7 +112,7 @@ if __name__ == "__main__":
         fuzzy=FuzzySearch(75, transformer=TokenTransformer()),
         rate_counter=RateCounter(0, 1, 2, 0, RateFunction.sqrt2),
         marks_counter=MarksCounter(MarksMode.MULTIPLE),
-        validation_treshold=50,
+        validation_treshold=0.5,
         debug=True,
     )
 
@@ -120,13 +123,15 @@ if __name__ == "__main__":
         jakkar=jakkar,
     )
 
+    start = time.time()
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=TEST_DATA.VKUSVILL2,
+        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\validation.xlsx",
     )
+    print("END UP WITH", round(time.time() - start), "SECONDS")
 
-    jakkar_metrics = JakkarMetric(0.5)
-    jakkar_metrics.estimate(result)
+    # jakkar_metrics = JakkarMetric(0.5)
+    # jakkar_metrics.estimate(result)
 
-    # result.to_excel("checkout.xlsx", index=False)
+    result.to_excel("checkout.xlsx", index=False)

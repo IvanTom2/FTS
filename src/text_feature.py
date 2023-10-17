@@ -91,21 +91,23 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         not_found_mode: FeatureNotFoundMode,
         feature_name: str,
     ) -> pd.Series:
-        cif = set(row[FEATURES.CI])  # client intermediate features
-        sif = set(row[FEATURES.SI])  # source intermediate features
+        if row[FEATURES.INTERMEDIATE_VALIDATION]:
+            cif = set(row[FEATURES.CI])  # client intermediate features
+            sif = set(row[FEATURES.SI])  # source intermediate features
 
-        not_found_status = NotFoundStatus(cif, sif, not_found_mode, feature_name)
-        if not_found_status:
-            row[FEATURES.INTERMEDIATE_VALIDATION] = not_found_status.desicion
-            row[FEATURES.NOT_FOUND] += not_found_status.status
-            return row
+            not_found_status = NotFoundStatus(cif, sif, not_found_mode, feature_name)
+            if not_found_status:
+                row[FEATURES.INTERMEDIATE_VALIDATION] = not_found_status.desicion
+                row[FEATURES.NOT_FOUND] += not_found_status.status
+                return row
 
-        based = self._determine_based_intersection(cif, sif, val_mode)
-        intersect = cif.intersection(sif)
-        desicion = 1 if len(intersect) == based else 0
+            based = self._determine_based_intersection(cif, sif, val_mode)
+            intersect = cif.intersection(sif)
+            desicion = 1 if len(intersect) == based else 0
 
-        row[FEATURES.INTERMEDIATE_VALIDATION] = desicion
-        row[FEATURES.NOT_FOUND] = f"Feature {feature_name} founded; "
+            row[FEATURES.INTERMEDIATE_VALIDATION] = desicion
+            row[FEATURES.NOT_FOUND] = f"Feature {feature_name} founded; "
+
         return row
 
     def _hand_over_features(
@@ -180,15 +182,15 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             ] = f"Not validated by {feature.NAME}"
 
             data = self._hand_over_features(data, cur_df)
+            data = self._hand_over_intermediate(data, cur_df)
             if self.skip_intermediate_validated:
-                data = self._hand_over_intermediate(data, cur_df)
                 cur_df = cur_df[cur_df[FEATURES.INTERMEDIATE_VALIDATION] != 0]
 
         return data
 
     def validate(self, data: pd.DataFrame) -> pd.DataFrame:
         if self.skip_validated:
-            data = data[data[DATA.VALIDATED] == 0]
+            data = data[data[DATA.VALIDATION_STATUS] == 0]
 
         data[FEATURES.STATUS] = ""
         data[FEATURES.INTERMEDIATE_VALIDATION] = 1
@@ -198,7 +200,13 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
         data = self._extract(data)
 
-        data.loc[data[FEATURES.INTERMEDIATE_VALIDATION] == 1, DATA.VALIDATED] = 1
+        data[DATA.VALIDATED] = np.where(
+            data[FEATURES.INTERMEDIATE_VALIDATION] == 1,
+            data[DATA.VALIDATED],
+            0,
+        )
+
+        # data.loc[data[FEATURES.INTERMEDIATE_VALIDATION] == 1, DATA.VALIDATED] = 1
         data.loc[
             data[FEATURES.INTERMEDIATE_VALIDATION] == 1,
             FEATURES.STATUS,
@@ -206,7 +214,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
 
         data[FEATURES.VALIDATED] = np.where(
             data[FEATURES.STATUS] == "Validated",
-            1,
+            data[FEATURES.VALIDATED],
             0,
         )
 

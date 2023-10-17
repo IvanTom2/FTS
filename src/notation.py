@@ -60,6 +60,7 @@ class DATA(NOTATION):
     CLIENT_NAME = "Наименование товара клиента"
     SOURCE_NAME = "Наименование товара на сайте"
 
+    VALIDATION_STATUS = "validation_status"
     VALIDATED = "validated"
     MYMARK = "MyMark"
 
@@ -169,6 +170,7 @@ class JAKKAR(NOTATION):
     SOURCE_TOKENS_COUNT = "source_tokens_count"
 
     RATIO_PATH = r"ratio.xlsx"
+    VALIDATED = "FJ validation"
 
 
 class PATH(object):

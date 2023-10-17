@@ -1,6 +1,8 @@
-import pandas as pd
-from pathlib import Path
 import sys
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
 
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
@@ -31,10 +33,10 @@ class FuzzyJakkarValidator(object):
         rate_counter: RateCounter,
         marks_counter: MarksCounter,
         debug: bool = False,
-        validation_treshold: int = 50,
+        validation_treshold: float = 0.5,
     ) -> None:
-        if validation_treshold < 0 or validation_treshold > 100:
-            raise ValueError("Validation treshold should be in range 0 - 100")
+        if validation_treshold < 0 or validation_treshold > 1:
+            raise ValueError("Validation treshold should be in range 0 - 1")
 
         self.tokenizer = tokenizer
         self.preproc = preprocessor
@@ -48,6 +50,8 @@ class FuzzyJakkarValidator(object):
         self.returning_columns = [
             JAKKAR.CLIENT_TOKENS_COUNT,
             JAKKAR.SOURCE_TOKENS_COUNT,
+            JAKKAR.VALIDATED,
+            DATA.VALIDATED,
         ]
 
         if self.debug:
@@ -188,6 +192,18 @@ class FuzzyJakkarValidator(object):
             self._save_ratio()
 
         data = self._delete_working_rows(data)
+
+        data[JAKKAR.VALIDATED] = np.where(
+            data[self.marks_counter.validation_column] >= self.validation_treshold,
+            data[JAKKAR.VALIDATED],
+            0,
+        )
+
+        data[DATA.VALIDATED] = np.where(
+            data[JAKKAR.VALIDATED] == 1,
+            data[DATA.VALIDATED],
+            0,
+        )
 
         return data, self.returning_columns
 
