@@ -14,7 +14,19 @@ from src.text_feature import TextFeatureSearch
 from src.metrics import JakkarMetric
 from notation import DATA, VENDOR_CODE, FEATURES, JAKKAR
 from collections.abc import Callable
-from jakkar.jakkar import *
+from jakkar.jakkar import (
+    FuzzyJakkarValidator,
+    RegexTokenizer,
+    LanguageType,
+    RegexCustomWeights,
+    FuzzySearch,
+    TokenTransformer,
+    Preprocessor,
+    RateCounter,
+    RateFunction,
+    MarksCounter,
+    MarksMode,
+)
 from main_util import TEST_DATA
 
 
@@ -25,7 +37,7 @@ class Validator(object):
         VC: Union[VendorCodeSearch, None],
         TF: Union[TextFeatureSearch, None],
         jakkar: Union[FuzzyJakkarValidator, None],
-        max_processes: int = 0,
+        max_processes: int = 4,
     ) -> None:
         self.data_repr = data_repr
         self.VC = VC
@@ -136,11 +148,11 @@ if __name__ == "__main__":
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"/home/mainus/Projects/MLp/products_matching/BrandPol/КАТРЕН_ОЗОН2.xlsx",
+        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\FarmaImpex1.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
 
-    jakkar_metrics = JakkarMetric(0.5)
-    jakkar_metrics.estimate(result)
+    # jakkar_metrics = JakkarMetric(0.5)
+    # jakkar_metrics.estimate(result)
 
     result.to_excel("checkout.xlsx", index=False)

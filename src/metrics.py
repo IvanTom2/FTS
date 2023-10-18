@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from jakkar.jakkar import *
+from jakkar.jakkar import BasicTokenizer
 
 
 class Metric(object):

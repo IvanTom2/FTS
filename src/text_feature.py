@@ -107,7 +107,9 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             desicion = 1 if len(intersect) == based else 0
 
             if desicion:
-                row[FEATURES.INTERMEDIATE_VALIDATION] = row[FEATURES.INTERMEDIATE_VALIDATION]
+                row[FEATURES.INTERMEDIATE_VALIDATION] = row[
+                    FEATURES.INTERMEDIATE_VALIDATION
+                ]
             else:
                 row[FEATURES.INTERMEDIATE_VALIDATION] = 0
 

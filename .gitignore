@@ -1,2 +1,6 @@
 .venv
 *.xlsx
+__pycache__
+*.pyc
+.pytest_cache
+*.rar
