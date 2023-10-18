@@ -5,15 +5,16 @@ import pandas as pd
 import multiprocessing
 from pathlib import Path
 from typing import Union
+from collections.abc import Callable
 
 sys.path.append(str(Path(__file__).parent / "src"))
 
 from src.util import DataRepr, DataReprMode
 from src.vendor_code import VendorCodeSearch, VendorCodeExtractor
 from src.text_feature import TextFeatureSearch
-from src.metrics import JakkarMetric
+from src.metrics import Metric, JakkarMetric
 from notation import DATA, VENDOR_CODE, FEATURES, JAKKAR
-from collections.abc import Callable
+from main_util import TEST_DATA
 from jakkar.jakkar import (
     FuzzyJakkarValidator,
     RegexTokenizer,
@@ -27,7 +28,19 @@ from jakkar.jakkar import (
     MarksCounter,
     MarksMode,
 )
-from main_util import TEST_DATA
+from src.features_collection import (
+    Weight,
+    Volume,
+    MemoryCapacity,
+    Dimension,
+    Size,
+    Length,
+    Quantity,
+    Color,
+    Concentration,
+    ConcentrationPerDose,
+    FarmaForm,
+)
 
 
 class Validator(object):
@@ -116,10 +129,23 @@ if __name__ == "__main__":
     6. Запуск Джаккара
     """
 
+    custom_features_list = [
+        Weight,
+        Volume,
+        Quantity,
+        Concentration,
+        ConcentrationPerDose,
+        FarmaForm,
+    ]
+
     # VCExtractor = VendorCodeExtractor()
     data_repr = DataRepr(DataReprMode.VALIDATION)
     VC = VendorCodeSearch(True)
-    TF = TextFeatureSearch(True, True)
+    TF = TextFeatureSearch(
+        skip_validated=True,
+        skip_intermediate_validated=False,
+        custom_features_list=custom_features_list,
+    )
 
     jakkar = FuzzyJakkarValidator(
         tokenizer=RegexTokenizer(
@@ -140,8 +166,8 @@ if __name__ == "__main__":
     validator = Validator(
         data_repr=data_repr,
         VC=None,
-        TF=None,
-        jakkar=jakkar,
+        TF=TF,
+        jakkar=None,
     )
 
     start = time.time()
@@ -151,6 +177,9 @@ if __name__ == "__main__":
         validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\FarmaImpex1.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
+
+    metrics = Metric("Text Features", DATA.VALIDATED)
+    metrics.estimate(result)
 
     # jakkar_metrics = JakkarMetric(0.5)
     # jakkar_metrics.estimate(result)

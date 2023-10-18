@@ -92,7 +92,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         not_found_mode: FeatureNotFoundMode,
         feature_name: str,
     ) -> pd.Series:
-        if row[FEATURES.INTERMEDIATE_VALIDATION]:
+        if row[FEATURES.INTERMEDIATE_VALIDATION] == 1:
             cif = set(row[FEATURES.CI])  # client intermediate features
             sif = set(row[FEATURES.SI])  # source intermediate features
 
@@ -106,7 +106,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             intersect = cif.intersection(sif)
             desicion = 1 if len(intersect) == based else 0
 
-            if desicion:
+            if desicion == 1:
                 row[FEATURES.INTERMEDIATE_VALIDATION] = row[
                     FEATURES.INTERMEDIATE_VALIDATION
                 ]
@@ -188,10 +188,11 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
                 FEATURES.STATUS,
             ] = f"Not validated by {feature.NAME}"
 
-            data = self._hand_over_features(data, cur_df)
-            data = self._hand_over_intermediate(data, cur_df)
             if self.skip_intermediate_validated:
                 cur_df = cur_df[cur_df[FEATURES.INTERMEDIATE_VALIDATION] == 1]
+
+            data = self._hand_over_features(data, cur_df)
+        data = self._hand_over_intermediate(data, cur_df)
 
         return data
 
