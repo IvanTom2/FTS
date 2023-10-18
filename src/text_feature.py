@@ -106,7 +106,11 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             intersect = cif.intersection(sif)
             desicion = 1 if len(intersect) == based else 0
 
-            row[FEATURES.INTERMEDIATE_VALIDATION] = desicion
+            if desicion:
+                row[FEATURES.INTERMEDIATE_VALIDATION] = row[FEATURES.INTERMEDIATE_VALIDATION]
+            else:
+                row[FEATURES.INTERMEDIATE_VALIDATION] = 0
+
             row[FEATURES.NOT_FOUND] = f"Feature {feature_name} founded; "
 
         return row
@@ -185,7 +189,7 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             data = self._hand_over_features(data, cur_df)
             data = self._hand_over_intermediate(data, cur_df)
             if self.skip_intermediate_validated:
-                cur_df = cur_df[cur_df[FEATURES.INTERMEDIATE_VALIDATION] != 0]
+                cur_df = cur_df[cur_df[FEATURES.INTERMEDIATE_VALIDATION] == 1]
 
         return data
 

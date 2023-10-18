@@ -55,7 +55,7 @@ def setup_tasks(
     transformer: TokenTransformer,
     fuzzy_threshold: int,
 ) -> pd.DataFrame:
-    if not index:
+    if not index:  # that mean index == 0
         data = data.progress_apply(
             search_func,
             args=(

@@ -138,7 +138,7 @@ if __name__ == "__main__":
         raw_path=None,
         validation_path=r"/home/mainus/Projects/MLp/products_matching/BrandPol/КАТРЕН_ОЗОН2.xlsx",
     )
-    print("END UP WITH", round(time.time() - start), "SECONDS")
+    print("FINISHED IN", round(time.time() - start), "SECONDS")
 
     jakkar_metrics = JakkarMetric(0.5)
     jakkar_metrics.estimate(result)
