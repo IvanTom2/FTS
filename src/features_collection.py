@@ -97,9 +97,9 @@ class NotFoundStatus(object):
         return False
 
     def set_decision(self, not_found_mode) -> int:
-        if not_found_mode is FeatureNotFoundMode.MODEST:
+        if not_found_mode == FeatureNotFoundMode.MODEST:
             self.desicion = 1
-        elif not_found_mode is FeatureNotFoundMode.STRICT:
+        else:  # not_found_mode == FeatureNotFoundMode.STRICT
             self.desicion = 0
 
     @property
@@ -107,10 +107,11 @@ class NotFoundStatus(object):
         if self.both_not_found:
             return 1
         elif self.one_not_found:
-            if self.not_found_mode is self.ACCEPT:
+            if self.not_found_mode == self.ACCEPT:
                 return 1
-            elif self.not_found_mode is self.DROP:
+            else: # self.not_found_mode == self.DROP:
                 return 0
+
 
     @property
     def status(self) -> str:

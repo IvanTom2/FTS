@@ -64,8 +64,8 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
         designation: Union[Measure, Type],
         progress_for: str,
     ) -> pd.Series:
-        print("Search features", progress_for, feature.NAME)
-        series = series.progress_apply(self._findall, args=(designation.regex,))
+        # print("Search features", progress_for, feature.NAME)
+        series = series.apply(self._findall, args=(designation.regex,))
         series = series.apply(self._preproccess, args=(feature, designation))
         return series
 
@@ -77,15 +77,15 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
     ) -> int:
         if val_mode is FeatureValidationMode.MODEST:
             based = min(len(cif), len(sif))
-        elif val_mode is FeatureValidationMode.STRICT:
-            based = max(len(cif), len(sif))
         elif val_mode is FeatureValidationMode.CLIENT:
             based = len(cif)
         elif val_mode is FeatureValidationMode.SOURCE:
             based = len(sif)
+        else:  # val_mode is FeatureValidationMode.STRICT
+            based = max(len(cif), len(sif))
         return based
 
-    def _intermediate_validation(
+    def _old_intermediate_validation(
         self,
         row: pd.Series,
         val_mode: FeatureValidationMode,
@@ -116,6 +116,48 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
             row[FEATURES.NOT_FOUND] = f"Feature {feature_name} founded; "
 
         return row
+
+    def _intermediate_validation_func(self, row: list[Union[int, set]]) -> list[int]:
+        desicion = row[0]
+        if desicion == 1:
+            cif = row[1]
+            sif = row[2]
+
+            not_found_status = NotFoundStatus(
+                cif,
+                sif,
+                self.__not_found_mode,
+                self.__feature_name,
+            )
+
+            if not_found_status:
+                desicion = not_found_status.desicion
+                return desicion
+
+            based = self._determine_based_intersection(cif, sif, self.__val_mode)
+            intersect = cif.intersection(sif)
+            desicion = desicion if len(intersect) == based else 0
+
+        return desicion
+
+    def _intermediate_validation(
+        self,
+        data: pd.DataFrame,
+        feature: AbstractFeature,
+    ) -> pd.DataFrame:
+        cif_massive = map(set, data[FEATURES.CI].to_list())
+        sif_massive = map(set, data[FEATURES.SI].to_list())
+        intermediate = data[FEATURES.INTERMEDIATE_VALIDATION].to_list()
+
+        self.__not_found_mode = feature.NOT_FOUND_MODE
+        self.__feature_name = feature.NAME
+        self.__val_mode = feature.VALIDATION_MODE
+
+        massive = list(zip(intermediate, cif_massive, sif_massive))
+        desicions = list(map(self._intermediate_validation_func, tqdm(massive)))
+        data[FEATURES.INTERMEDIATE_VALIDATION] = desicions
+
+        return data
 
     def _hand_over_features(
         self,
@@ -173,15 +215,17 @@ class TextFeatureSearch(AbstractTextFeatureSearch):
                 cur_df[FEATURES.CI] += cif
                 cur_df[FEATURES.SI] += sif
 
-            cur_df = cur_df.apply(
-                self._intermediate_validation,
-                axis=1,
-                args=(
-                    feature.VALIDATION_MODE,
-                    feature.NOT_FOUND_MODE,
-                    feature.NAME,
-                ),
-            )
+            cur_df = self._intermediate_validation(cur_df, feature)
+
+            # cur_df = cur_df.progress_apply(
+            #     self._old_intermediate_validation,
+            #     axis=1,
+            #     args=(
+            #         feature.VALIDATION_MODE,
+            #         feature.NOT_FOUND_MODE,
+            #         feature.NAME,
+            #     ),
+            # )
 
             cur_df.loc[
                 cur_df[FEATURES.INTERMEDIATE_VALIDATION] == 0,

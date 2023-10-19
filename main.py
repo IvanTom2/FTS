@@ -174,7 +174,7 @@ if __name__ == "__main__":
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\FarmaImpex1.xlsx",
+        validation_path=r"/home/mainus/Brandpol_Validator/FarmaImpex2.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
 
@@ -184,4 +184,4 @@ if __name__ == "__main__":
     # jakkar_metrics = JakkarMetric(0.5)
     # jakkar_metrics.estimate(result)
 
-    result.to_excel("checkout.xlsx", index=False)
+    # result.to_excel("checkout.xlsx", index=False)
