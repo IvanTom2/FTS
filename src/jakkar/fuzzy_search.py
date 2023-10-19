@@ -14,7 +14,7 @@ tqdm.pandas()
 from tokenization import Token, TokenTransformer
 
 
-def search_func(
+def old_search_func(
     row: pd.Series,
     left_tokens_column: str,
     right_tokens_column: str,
@@ -93,13 +93,13 @@ class FuzzySearch(object):
         self.fuzzy_threshold = fuzzy_threshold
         self.transformer = transformer
 
-    def _search(
+    def _old_search(
         self,
         row: pd.Series,
         left_tokens_column: str,
         right_tokens_column: str,
     ) -> pd.Series:
-        return search_func(
+        return old_search_func(
             row,
             left_tokens_column,
             right_tokens_column,
@@ -114,7 +114,7 @@ class FuzzySearch(object):
     ) -> list[pd.DataFrame]:
         return np.array_split(data, process_pool._processes)
 
-    def search(
+    def old_search(
         self,
         data: pd.DataFrame,
         left_tokens_column: str,
@@ -125,7 +125,7 @@ class FuzzySearch(object):
             dataframes = self._slice(data, process_pool)
             args = [
                 (
-                    search_func,
+                    old_search_func,
                     index,
                     dataframes[index],
                     left_tokens_column,
@@ -144,7 +144,7 @@ class FuzzySearch(object):
 
         else:
             data = data.progress_apply(
-                self._search,
+                self._old_search,
                 args=(
                     left_tokens_column,
                     right_tokens_column,
@@ -152,4 +152,48 @@ class FuzzySearch(object):
                 axis=1,
             )
 
+        return data
+
+    def _search_func(
+        self,
+        row: list[Token],
+    ) -> tuple[list[Token]]:
+        left_tokens: list[Token] = row[0]
+        right_tokens: list[Token] = row[1]
+        right_tokens_values = [token.value for token in right_tokens]
+
+        for left_token in left_tokens:
+            if left_token in right_tokens:
+                index = right_tokens.index(left_token.value)
+                right_token = right_tokens[index]
+
+                self.transformer.transform(right_token, left_token, False)
+
+            else:
+                token_value, score = fuzz_process.extractOne(
+                    left_token.value,
+                    right_tokens_values,
+                )
+                if score >= self.fuzzy_threshold:
+                    index = right_tokens.index(token_value)
+                    right_token = right_tokens[index]
+
+                    self.transformer.transform(right_token, left_token, True)
+
+        return left_tokens, right_tokens
+
+    def search(
+        self,
+        data: pd.DataFrame,
+        left_tokens_column: str,
+        right_tokens_column: str,
+        process_pool: multiprocessing.Pool,
+    ) -> pd.DataFrame:
+        left_tokens = data[left_tokens_column].to_list()
+        right_tokens = data[right_tokens_column].to_list()
+
+        massive = list(zip(left_tokens, right_tokens))
+        massive = list(map(self._search_func, tqdm(massive)))
+
+        data[left_tokens_column, right_tokens_column] = massive
         return data

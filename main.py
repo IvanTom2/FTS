@@ -50,7 +50,7 @@ class Validator(object):
         VC: Union[VendorCodeSearch, None],
         TF: Union[TextFeatureSearch, None],
         jakkar: Union[FuzzyJakkarValidator, None],
-        max_processes: int = 4,
+        max_processes: int = 0,
     ) -> None:
         self.data_repr = data_repr
         self.VC = VC
@@ -166,22 +166,22 @@ if __name__ == "__main__":
     validator = Validator(
         data_repr=data_repr,
         VC=None,
-        TF=TF,
-        jakkar=None,
+        TF=None,
+        jakkar=jakkar,
     )
 
     start = time.time()
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"/home/mainus/Brandpol_Validator/FarmaImpex2.xlsx",
+        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\e2e4_validation.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
 
-    metrics = Metric("Text Features", DATA.VALIDATED)
-    metrics.estimate(result)
+    # metrics = Metric("Text Features", DATA.VALIDATED)
+    # metrics.estimate(result)
 
     # jakkar_metrics = JakkarMetric(0.5)
     # jakkar_metrics.estimate(result)
 
-    # result.to_excel("checkout.xlsx", index=False)
+    result.to_excel("e2e4_res.xlsx", index=False)

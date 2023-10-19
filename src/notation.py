@@ -57,8 +57,8 @@ class DATA(NOTATION):
     ROW = RAW.ROW
     QUERY = SEMANTIC.QUERY
     VC = SEMANTIC.VC
-    CLIENT_NAME = "Наименование товара клиента"
-    SOURCE_NAME = "Наименование товара на сайте"
+    CLIENT_NAME = "Название товара клиента"
+    SOURCE_NAME = "Название товара на сайте"
 
     VALIDATION_STATUS = "validation_status"
     VALIDATED = "validated"

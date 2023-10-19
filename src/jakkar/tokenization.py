@@ -72,7 +72,7 @@ class Token(AbstractToken):
         return f"<Original: {self.original_value}, Value: {self.value}, Weight: {self.custom_weight}>"
 
     def __repr__(self) -> str:
-        return f"{self.original_value} = {self.custom_weight}"
+        return f"<Original: {self.original_value}, Value: {self.value}, Weight: {self.custom_weight}>"
 
 
 class TokenTransformer(object):
