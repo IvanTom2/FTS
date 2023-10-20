@@ -52,13 +52,20 @@ class SEMANTIC(NOTATION):
 
 
 class DATA(NOTATION):
-    NAME = SEMANTIC.NAME
+    # NAME = SEMANTIC.NAME
+    NAME = "Наименование"
     LINK = RAW.LINK
     ROW = RAW.ROW
     QUERY = SEMANTIC.QUERY
     VC = SEMANTIC.VC
     CLIENT_NAME = "Название товара клиента"
     SOURCE_NAME = "Название товара на сайте"
+
+    SOURCE = "Сайт"
+    REGION = "Регион"
+
+    CLIENT_PRICE = "Цена клиента"
+    SOURCE_PRICE = "Цена на сайте"
 
     VALIDATION_STATUS = "validation_status"
     VALIDATED = "validated"
@@ -171,6 +178,14 @@ class JAKKAR(NOTATION):
 
     RATIO_PATH = r"ratio.xlsx"
     VALIDATED = "FJ validation"
+
+
+class PRICE_VALIDATOR(NOTATION):
+    PRICE_VALID = "price_validation"
+    PRICE_DIFF = "price_diff"
+
+    GOODS_MARK = 91
+    LINKS_MARK = 92
 
 
 class PATH(object):
