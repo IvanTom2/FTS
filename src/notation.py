@@ -180,8 +180,8 @@ class JAKKAR(NOTATION):
     VALIDATED = "FJ validation"
 
 
-class PRICE_VALIDATOR(NOTATION):
-    PRICE_VALID = "price_validation"
+class GROUPBY_VALIDATOR(NOTATION):
+    PRICE_VALID = "price_groupby_validation"
     PRICE_DIFF = "price_diff"
 
     GOODS_MARK = 91

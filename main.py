@@ -135,14 +135,13 @@ if __name__ == "__main__":
         Quantity,
         Concentration,
         ConcentrationPerDose,
-        FarmaForm,
     ]
 
     # VCExtractor = VendorCodeExtractor()
     data_repr = DataRepr(DataReprMode.VALIDATION)
     VC = VendorCodeSearch(True)
     TF = TextFeatureSearch(
-        skip_validated=True,
+        skip_validated=False,
         skip_intermediate_validated=False,
         custom_features_list=custom_features_list,
     )
@@ -174,7 +173,7 @@ if __name__ == "__main__":
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\e2e4_validation.xlsx",
+        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\semantic_validation.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
 
@@ -184,4 +183,4 @@ if __name__ == "__main__":
     # jakkar_metrics = JakkarMetric(0.5)
     # jakkar_metrics.estimate(result)
 
-    result.to_excel("e2e4_res.xlsx", index=False)
+    result.to_excel("output.xlsx", index=False)

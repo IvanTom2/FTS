@@ -109,9 +109,8 @@ class NotFoundStatus(object):
         elif self.one_not_found:
             if self.not_found_mode == self.ACCEPT:
                 return 1
-            else: # self.not_found_mode == self.DROP:
+            else:  # self.not_found_mode == self.DROP:
                 return 0
-
 
     @property
     def status(self) -> str:
@@ -377,7 +376,7 @@ class Quantity(NumericalFeature):
                 "Нумерованное количество",
                 1,
                 "",
-                r"(?:n|№|x|х)\s*([2-9][,.]?\d*|[1-9]\d+[,.]?\d*)",
+                r"(?:[^а-яa-z]n|№|[^а-яa-z]x|[^а-яa-z]х)\s*([2-9][,.]?\d*|[1-9]\d+[,.]?\d*)",
             ),
         ],
     )
@@ -741,4 +740,6 @@ class FutureList(object):
 
 
 if __name__ == "__main__":
-    lst = FutureList()
+    # lst = FutureList()
+    for des in Dimension.designations:
+        print(des.regex)
