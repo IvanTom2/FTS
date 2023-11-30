@@ -135,6 +135,8 @@ if __name__ == "__main__":
         Quantity,
         Concentration,
         ConcentrationPerDose,
+        Size,
+        Dimension,
     ]
 
     # VCExtractor = VendorCodeExtractor()
@@ -165,22 +167,16 @@ if __name__ == "__main__":
     validator = Validator(
         data_repr=data_repr,
         VC=None,
-        TF=None,
-        jakkar=jakkar,
+        TF=TF,
+        jakkar=None,
     )
 
     start = time.time()
     result = validator.validate(
         semantic_path=None,
         raw_path=None,
-        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\semantic_validation.xlsx",
+        validation_path=r"C:\Users\tomilov-iv\Desktop\BrandPol\validation.xlsx",
     )
     print("FINISHED IN", round(time.time() - start), "SECONDS")
-
-    # metrics = Metric("Text Features", DATA.VALIDATED)
-    # metrics.estimate(result)
-
-    # jakkar_metrics = JakkarMetric(0.5)
-    # jakkar_metrics.estimate(result)
 
     result.to_excel("output.xlsx", index=False)

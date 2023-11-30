@@ -154,6 +154,28 @@ class FuzzySearch(object):
 
         return data
 
+    def _fuzz_extract(
+        self,
+        left_token: Token,
+        right_tokens_values: list[str],
+    ) -> tuple[int, Token]:
+        try:
+            token_value, score = left_token.value, 0
+            extracted = fuzz_process.extractOne(
+                left_token.value,
+                right_tokens_values,
+            )
+
+            if extracted:
+                token_value, score = extracted
+
+        except Exception as ex:
+            print(ex)
+            token_value, score = left_token.value, 0
+
+        finally:
+            return token_value, score
+
     def _search_func(
         self,
         row: list[Token],
@@ -170,10 +192,7 @@ class FuzzySearch(object):
                 self.transformer.transform(right_token, left_token, False)
 
             else:
-                token_value, score = fuzz_process.extractOne(
-                    left_token.value,
-                    right_tokens_values,
-                )
+                token_value, score = self._fuzz_extract(left_token, right_tokens_values)
                 if score >= self.fuzzy_threshold:
                     index = right_tokens.index(token_value)
                     right_token = right_tokens[index]
